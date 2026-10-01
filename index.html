@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2563eb">
-<title>نظام إدارة محلات الموبايلات - Firebase</title>
+<title>نظام إدارة محلات الموبايلات</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
 <style>
   :root{
@@ -136,6 +136,7 @@
     animation:slideIn .3s;}
   .toast-msg.success{background:var(--success);}
   .toast-msg.error{background:var(--danger);}
+  .toast-msg.warning{background:var(--warning);}
   @keyframes slideIn{from{transform:translateX(-100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;
@@ -149,7 +150,7 @@
     nav{position:fixed;bottom:0;left:0;right:0;width:100%;display:flex;
       overflow-x:auto;padding:0;border:none;border-top:1px solid var(--border);
       z-index:200;height:auto;top:auto;}
-    nav a{flex-direction:column;font-size:11px;padding:8px 12px;min-width:80px;
+    nav a{flex-direction:column;font-size:11px;padding:8px 12px;min-width:70px;
       text-align:center;border:none;}
     nav a.active{border:none;border-top:3px solid var(--primary);}
     nav a .icon{font-size:20px;}
@@ -167,14 +168,13 @@
 <div id="loginScreen">
   <div class="login-box">
     <h1>📱 نظام إدارة الموبايلات</h1>
-    <p>سجّل الدخول للمتابعة (Firebase)</p>
+    <p>سجّل الدخول للمتابعة</p>
     <div class="error-msg" id="loginError"></div>
     <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="email">
     <input type="password" id="loginPass" placeholder="كلمة المرور" autocomplete="current-password">
     <button id="loginBtn" onclick="login()">🔓 دخول</button>
     <div class="hint">
-      🔑 سجّل الدخول بحساب Firebase Authentication<br>
-      (مثل: owner@shop.com / 123456)
+      🔑 سجّل الدخول بحساب Firebase Authentication
     </div>
   </div>
 </div>
@@ -182,7 +182,7 @@
 <!-- التطبيق -->
 <div id="app">
   <header>
-    <h2>📱 نظام إدارة الموبايلات</h2>
+    <h2 id="shopTitle">📱 نظام إدارة الموبايلات</h2>
     <div class="user-info">
       <span class="sync-badge" id="syncBadge">🟢 متصل</span>
       <span id="userName"></span>
@@ -200,6 +200,8 @@
       <a data-page="maintenance"><span class="icon">🔧</span> الصيانة</a>
       <a data-page="expenses"><span class="icon">💸</span> المصروفات</a>
       <a data-page="reports"><span class="icon">📈</span> التقارير</a>
+      <a data-page="users"><span class="icon">👥</span> المستخدمون</a>
+      <a data-page="settings"><span class="icon">⚙️</span> الإعدادات</a>
     </nav>
 
     <main>
@@ -348,6 +350,146 @@
           <tbody id="reportTable"></tbody></table>
         </div>
       </div>
+
+      <!-- المستخدمون -->
+      <div class="page" id="page-users">
+        <h3 class="page-title">👥 إدارة المستخدمين والصلاحيات</h3>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h4>➕ إضافة موظف للنظام</h4>
+          </div>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+            ⚠️ يجب أن يكون لدى الموظف حساب في Firebase Authentication.
+            إن لم يكن، أنشئه من قسم <b>الإعدادات</b>.
+          </p>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr auto;">
+            <div>
+              <label>UID الموظف</label>
+              <input id="uUid" placeholder="الصق UID من Authentication">
+            </div>
+            <div>
+              <label>الاسم الظاهر</label>
+              <input id="uName" placeholder="اسم الموظف">
+            </div>
+            <div>
+              <label>الدور</label>
+              <select id="uRole">
+                <option value="cashier">كاشير</option>
+                <option value="tech">فني</option>
+                <option value="owner">مالك</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn success" onclick="addEmployee()">إضافة</button>
+            </div>
+          </div>
+          <div class="form-grid" style="grid-template-columns:2fr auto;">
+            <div>
+              <label>البريد الإلكتروني للموظف</label>
+              <input id="uEmail" type="email" placeholder="user@shop.com">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn warning" onclick="lookupUserUid()">🔍 استخراج UID من البريد</button>
+            </div>
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:8px;">
+            💡 للحصول على UID: Firebase Console → Authentication → Users → انسخ User UID
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h4>قائمة الموظفين</h4>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>البريد</th>
+                <th>الدور</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- الإعدادات -->
+      <div class="page" id="page-settings">
+        <h3 class="page-title">⚙️ الإعدادات</h3>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h4>🏪 معلومات المحل</h4>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label>اسم المحل</label>
+              <input id="shopName" placeholder="محل الموبايلات">
+            </div>
+            <div>
+              <label>رقم الهاتف</label>
+              <input id="shopPhone" placeholder="01xxxxxxxxx">
+            </div>
+            <div>
+              <label>العنوان</label>
+              <input id="shopAddress" placeholder="العنوان">
+            </div>
+          </div>
+          <button class="btn success" onclick="saveShopInfo()">💾 حفظ</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h4>🔐 إنشاء حساب موظف جديد</h4>
+          </div>
+          <p style="color:var(--danger);font-size:13px;margin-bottom:12px;">
+            ⚠️ <b>تحذير:</b> سيتم تسجيل خروجك من الحساب الحالي بعد إنشاء الحساب الجديد.
+          </p>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr auto;">
+            <div>
+              <label>البريد</label>
+              <input id="newAccEmail" type="email" placeholder="user@shop.com">
+            </div>
+            <div>
+              <label>كلمة المرور (6+ أحرف)</label>
+              <input id="newAccPass" type="password">
+            </div>
+            <div>
+              <label>الاسم</label>
+              <input id="newAccName">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn warning" onclick="createNewAccount()">إنشاء</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="font-size:12px;color:var(--muted);">الدور الافتراضي للحساب الجديد</label>
+            <select id="newAccRole" style="padding:9px;border:1px solid var(--border);border-radius:8px;width:100%;">
+              <option value="cashier">كاشير</option>
+              <option value="tech">فني</option>
+              <option value="owner">مالك</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h4>📤 النسخ الاحتياطي</h4>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" onclick="exportBackup()">⬇️ تصدير البيانات</button>
+            <button class="btn warning" onclick="document.getElementById('importFile').click()">⬆️ استيراد نسخة</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)">
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:8px;">
+            💡 نصيحة: صدّر نسخة احتياطية أسبوعياً.
+          </p>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -355,57 +497,46 @@
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalContent"></div></div>
 <div id="toast"></div>
 
-<!-- ============================================================
-     Firebase SDK (compat mode للسهولة)
-     ============================================================ -->
+<!-- Firebase SDK Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
 /* =========================================================
-   ⚙️ إعدادات Firebase - استبدلها بإعداداتك من Firebase Console
+   ⚙️ إعدادات Firebase (مملوءة بمشروعك)
    ========================================================= */
 const firebaseConfig = {
-  apiKey: "AIzaSyCGJQVtLATT1yFdkR58JyTxJ0kbQhnLVRg",
+  apiKey: "AIzaSyCJQywlTATJjYrdk58sJyTz0JkQhnLVg",
   authDomain: "shbrawy-shop.firebaseapp.com",
   projectId: "shbrawy-shop",
   storageBucket: "shbrawy-shop.firebasestorage.app",
   messagingSenderId: "619982205483",
-  appId: "1:619982205483:web:cab9426ce2888220ef306e",
-  measurementId: "G-VEWYWQM3XF"
+  appId: "1:619982205483:web:ca6426ce2888220ef306e"
 };
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// تفعيل التخزين المحلي للعمل بدون إنترنت
 db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-  console.warn('Persist error:', err.code);
+  console.warn('Persist:', err.code);
 });
 
 /* =========================================================
-   الصلاحيات حسب البريد الإلكتروني
+   المتغيرات العامة
    ========================================================= */
 const ROLE_AR = {owner:'مالك', cashier:'كاشير', tech:'فني'};
-
-// قائمة الأدوار (يمكنك تعديلها)
-const USER_ROLES = {
-  'owner@shop.com':   { role:'owner',   name:'المالك' },
-  'cashier@shop.com': { role:'cashier', name:'كاشير 1' },
-  'tech@shop.com':    { role:'tech',    name:'الفني أحمد' }
-};
-
 const PERMISSIONS = {
-  owner:  ['dashboard','inventory','pos','sales','maintenance','expenses','reports'],
+  owner:  ['dashboard','inventory','pos','sales','maintenance','expenses','reports','users','settings'],
   cashier:['dashboard','pos','sales','inventory'],
   tech:   ['dashboard','maintenance','inventory']
 };
 
 let currentUser = null;
 let currentRole = null;
-let cache = { products:[], invoices:[], maintenance:[], expenses:[], cart:[] };
+let cache = { products:[], invoices:[], maintenance:[], expenses:[], cart:[], users:[] };
+let listeners = [];
 
 /* =========================================================
    تسجيل الدخول
@@ -431,16 +562,16 @@ async function login(){
   } catch(err){
     console.error('Login error:', err);
     let msg = '❌ فشل تسجيل الدخول';
-    if(err.code === 'auth/invalid-credential' ||
-       err.code === 'auth/wrong-password' ||
-       err.code === 'auth/user-not-found'){
-      msg = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
+    if(['auth/invalid-credential','auth/wrong-password','auth/user-not-found'].includes(err.code)){
+      msg = '❌ البريد أو كلمة المرور غير صحيحة';
     } else if(err.code === 'auth/invalid-email'){
-      msg = '❌ صيغة البريد الإلكتروني غير صحيحة';
+      msg = '❌ صيغة البريد غير صحيحة';
     } else if(err.code === 'auth/too-many-requests'){
       msg = '⚠️ محاولات كثيرة. انتظر قليلاً';
     } else if(err.code === 'auth/network-request-failed'){
-      msg = '⚠️ مشكلة في الإنترنت';
+      msg = '⚠️ مشكلة في الاتصال بالإنترنت';
+    } else if(err.code === 'auth/unauthorized-domain'){
+      msg = '⚠️ النطاق غير مسموح في Firebase Console';
     }
     errEl.textContent = msg;
     errEl.style.display = 'block';
@@ -455,30 +586,47 @@ async function logout(){
 }
 
 /* =========================================================
-   مراقبة حالة المصادقة
+   مراقبة المصادقة
    ========================================================= */
 auth.onAuthStateChanged(async user => {
   if(user){
     console.log('👤 المستخدم:', user.email);
-    
-    // تحديد الدور
-    const info = USER_ROLES[user.email] || { role:'cashier', name:user.email };
-    currentUser = { uid:user.uid, email:user.email, name:info.name };
-    
-    // التحقق إن كان أدمن
-    try {
-      const adminDoc = await db.collection('admins').doc(user.uid).get();
-      if(adminDoc.exists && adminDoc.data().role === 'owner'){
-        currentRole = 'owner';
-        currentUser.name = 'المالك';
-      } else {
-        currentRole = info.role;
-      }
-    } catch(e){
-      currentRole = info.role;
-    }
 
-    // بدء التطبيق
+    let role = 'cashier';
+    let name = user.email;
+
+    try{
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if(userDoc.exists){
+        role = userDoc.data().role || 'cashier';
+        name = userDoc.data().name || user.email;
+      }
+    }catch(e){ console.warn('users lookup:', e); }
+
+    try{
+      const adminDoc = await db.collection('admins').doc(user.uid).get();
+      if(adminDoc.exists){
+        role = 'owner';
+        name = adminDoc.data().name || name;
+      }
+    }catch(e){ console.warn('admins lookup:', e); }
+
+    // لو أول دخول ومافيش سجل، أنشئ واحد
+    try{
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if(!userDoc.exists){
+        await db.collection('users').doc(user.uid).set({
+          name: name,
+          email: user.email,
+          role: role,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }catch(e){ console.warn('ensureOwner:', e); }
+
+    currentUser = { uid:user.uid, email:user.email, name };
+    currentRole = role;
+
     startApp();
     startRealtimeListeners();
   } else {
@@ -488,6 +636,8 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('app').style.display = 'none';
     const btn = document.getElementById('loginBtn');
     if(btn){ btn.disabled = false; btn.innerHTML = '🔓 دخول'; }
+    listeners.forEach(u => { try{ u(); }catch(e){} });
+    listeners = [];
   }
 });
 
@@ -511,6 +661,7 @@ function navigate(page){
   document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   document.querySelector(`#nav a[data-page="${page}"]`)?.classList.add('active');
+
   if(page==='dashboard')    refreshDashboard();
   if(page==='inventory')    renderInventory();
   if(page==='pos')          renderPosProducts();
@@ -518,67 +669,68 @@ function navigate(page){
   if(page==='maintenance')  renderMaintenance();
   if(page==='expenses')     renderExpenses();
   if(page==='reports')      generateReport();
+  if(page==='users')        renderUsers();
+  if(page==='settings')     loadShopInfo();
 }
 
 /* =========================================================
-   Realtime Listeners
+   Realtime listeners
    ========================================================= */
-let listeners = [];
-
 function startRealtimeListeners(){
-  // ⚠️ إلغاء أي listeners قديمة
-  listeners.forEach(unsub => { try{ unsub(); }catch(e){} });
+  listeners.forEach(u => { try{ u(); }catch(e){} });
   listeners = [];
 
-  // المنتجات
   listeners.push(db.collection('products').onSnapshot(snap => {
     cache.products = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderInventory(); renderPosProducts(); refreshDashboard();
     updateSyncBadge(true);
-  }, err => {
-    console.error('products listener:', err);
-    updateSyncBadge(false);
-  }));
+  }, err => { console.error('products:', err); updateSyncBadge(false); }));
 
-  // الفواتير
-  listeners.push(db.collection('invoices').orderBy('date','asc').onSnapshot(snap => {
+  listeners.push(db.collection('invoices').onSnapshot(snap => {
     cache.invoices = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    cache.invoices.sort((a,b) => (a.date||'').localeCompare(b.date||''));
     renderInvoices(); refreshDashboard(); generateReport();
-  }, err => console.error('invoices listener:', err)));
+  }, err => console.error('invoices:', err)));
 
-  // الصيانة
   listeners.push(db.collection('maintenance').onSnapshot(snap => {
     cache.maintenance = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderMaintenance(); refreshDashboard();
-  }, err => console.error('maintenance listener:', err)));
+  }, err => console.error('maintenance:', err)));
 
-  // المصروفات
   listeners.push(db.collection('expenses').onSnapshot(snap => {
     cache.expenses = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderExpenses(); generateReport();
-  }, err => console.error('expenses listener:', err)));
+  }, err => console.error('expenses:', err)));
 
-  // السلة (خاصة بكل جهاز)
+  listeners.push(db.collection('users').onSnapshot(snap => {
+    cache.users = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderUsers();
+  }, err => console.warn('users:', err)));
+
   listeners.push(db.collection('cart').doc(currentUser.uid).onSnapshot(doc => {
     cache.cart = doc.exists ? (doc.data().items || []) : [];
     renderCart();
-  }, err => console.error('cart listener:', err)));
+  }, err => console.warn('cart:', err)));
+
+  db.collection('settings').doc('shop').onSnapshot(doc => {
+    if(doc.exists){
+      const d = doc.data();
+      const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+      set('shopName', d.name); set('shopPhone', d.phone); set('shopAddress', d.address);
+      if(d.name) document.getElementById('shopTitle').textContent = '📱 ' + d.name;
+    }
+  });
 }
 
 function updateSyncBadge(online){
   const el = document.getElementById('syncBadge');
   if(!el) return;
-  if(online){
-    el.textContent = '🟢 متصل';
-    el.className = 'sync-badge';
-  } else {
-    el.textContent = '🔴 غير متصل';
-    el.className = 'sync-badge offline';
-  }
+  el.textContent = online ? '🟢 متصل' : '🔴 غير متصل';
+  el.className = online ? 'sync-badge' : 'sync-badge offline';
 }
 
 /* =========================================================
-   أدوات مساعدة
+   أدوات
    ========================================================= */
 function toast(msg, type=''){
   const t = document.createElement('div');
@@ -600,23 +752,22 @@ document.getElementById('modalBg').onclick = e => { if(e.target.id==='modalBg') 
    لوحة التحكم
    ========================================================= */
 function refreshDashboard(){
-  const invoices = cache.invoices;
-  const todayInv = invoices.filter(i => (i.date||'').slice(0,10) === today() && i.status!=='مرتجعة');
-  document.getElementById('todaySales').textContent = fmt(todayInv.reduce((s,i)=>s+ (i.total||0), 0));
+  const todayInv = cache.invoices.filter(i => (i.date||'').slice(0,10) === today() && i.status !== 'مرتجعة');
+  document.getElementById('todaySales').textContent = fmt(todayInv.reduce((s,i)=>s+(i.total||0), 0));
   document.getElementById('todayInvoices').textContent = todayInv.length;
 
   const maint = cache.maintenance.filter(m => m.status !== 'تم التسليم');
   document.getElementById('maintenanceCount').textContent = maint.length;
 
-  const low = cache.products.filter(p => p.qty <= p.min);
+  const low = cache.products.filter(p => (p.qty||0) <= (p.min||0));
   document.getElementById('lowStockCount').textContent = low.length;
 
   document.getElementById('lowStockTable').innerHTML = low.length
-    ? low.map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${p.min}</td>
+    ? low.map(p => `<tr><td>${p.name||''}</td><td>${p.qty||0}</td><td>${p.min||0}</td>
         <td><span class="status low">قارب على النفاذ</span></td></tr>`).join('')
     : '<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا توجد تنبيهات ✅</td></tr>';
 
-  const recent = invoices.slice(-5).reverse();
+  const recent = cache.invoices.slice(-5).reverse();
   document.getElementById('recentInvoices').innerHTML = recent.length
     ? recent.map(i=>`<tr><td>#${(i.id||'').slice(-4)}</td><td>${i.customer||''}</td>
         <td>${fmt(i.total)}</td>
@@ -637,13 +788,13 @@ function renderInventory(){
     <tr>
       <td>${p.name||''}</td><td>${p.cat||''}</td>
       <td>${fmt(p.buy)}</td><td>${fmt(p.sell)}</td>
-      <td style="color:${p.qty<=p.min?'var(--danger)':'inherit'};font-weight:${p.qty<=p.min?'bold':'normal'}">${p.qty}</td>
-      <td>${p.min}</td>
+      <td style="color:${(p.qty||0)<=(p.min||0)?'var(--danger)':'inherit'};font-weight:${(p.qty||0)<=(p.min||0)?'bold':'normal'}">${p.qty||0}</td>
+      <td>${p.min||0}</td>
       <td>
         <button class="btn sm warning" onclick="openProductModal('${p.id}')">تعديل</button>
         <button class="btn sm danger" onclick="deleteProduct('${p.id}')">حذف</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">لا توجد منتجات</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">لا توجد منتجات — أضف منتجاً جديداً</td></tr>';
 }
 
 function openProductModal(id){
@@ -688,11 +839,9 @@ async function saveProduct(id){
     } else {
       await db.collection('products').add(data);
     }
-    closeModal();
-    toast('✅ تم الحفظ','success');
+    closeModal(); toast('✅ تم الحفظ','success');
   }catch(e){
-    console.error(e);
-    toast('❌ فشل الحفظ: '+e.message,'error');
+    console.error(e); toast('❌ فشل الحفظ: '+e.message,'error');
   }
 }
 
@@ -701,9 +850,7 @@ async function deleteProduct(id){
   try{
     await db.collection('products').doc(id).delete();
     toast('🗑️ تم الحذف');
-  }catch(e){
-    toast('❌ فشل الحذف','error');
-  }
+  }catch(e){ toast('❌ فشل الحذف','error'); }
 }
 
 /* =========================================================
@@ -713,13 +860,13 @@ function renderPosProducts(){
   const q = (document.getElementById('posSearch')?.value || '').toLowerCase();
   const cat = document.getElementById('posCategory')?.value || '';
   const list = cache.products.filter(p =>
-    p.qty>0 && (!q || (p.name||'').toLowerCase().includes(q)) && (!cat || p.cat===cat));
+    (p.qty||0)>0 && (!q || (p.name||'').toLowerCase().includes(q)) && (!cat || p.cat===cat));
 
   document.getElementById('posProducts').innerHTML = list.map(p => `
     <div class="product-item" onclick="addToCart('${p.id}')">
       <div class="name">${p.name||''}</div>
       <div class="price">${fmt(p.sell)}</div>
-      <div class="stock">متوفر: ${p.qty}</div>
+      <div class="stock">متوفر: ${p.qty||0}</div>
     </div>`).join('') || '<p style="color:var(--muted);grid-column:1/-1;text-align:center;">لا توجد منتجات</p>';
 }
 
@@ -777,8 +924,7 @@ async function checkout(){
   const total = Math.max(0, subtotal - discount);
 
   try{
-    // 1) إنشاء الفاتورة
-    const invoiceRef = await db.collection('invoices').add({
+    await db.collection('invoices').add({
       date: new Date().toISOString(),
       customer: document.getElementById('customerName').value.trim() || 'عميل نقدي',
       cashier: currentUser.name,
@@ -788,26 +934,22 @@ async function checkout(){
       status:'مكتملة'
     });
 
-    // 2) خصم الكميات (batch)
     const batch = db.batch();
     cart.forEach(c => {
       const p = cache.products.find(x=>x.id===c.id);
       if(p){
-        const ref = db.collection('products').doc(p.id);
-        batch.update(ref, { qty: p.qty - c.qty });
+        batch.update(db.collection('products').doc(p.id), { qty: (p.qty||0) - c.qty });
       }
     });
     await batch.commit();
 
-    // 3) تفريغ السلة
     cache.cart = [];
     await saveCart();
     document.getElementById('customerName').value = '';
     document.getElementById('discount').value = 0;
     toast('✅ تم إتمام الفاتورة','success');
   }catch(e){
-    console.error('checkout:', e);
-    toast('❌ فشل إتمام البيع: '+e.message,'error');
+    console.error('checkout:', e); toast('❌ فشل البيع: '+e.message,'error');
   }
 }
 
@@ -855,19 +997,16 @@ async function returnInvoice(id){
   if(!inv || inv.status==='مرتجعة'){ toast('⚠️ الفاتورة غير متاحة','error'); return; }
   try{
     const batch = db.batch();
-    // إرجاع الكميات
     (inv.items||[]).forEach(it => {
       const p = cache.products.find(x=>x.id===it.id);
       if(p){
-        batch.update(db.collection('products').doc(p.id), { qty: p.qty + it.qty });
+        batch.update(db.collection('products').doc(p.id), { qty: (p.qty||0) + it.qty });
       }
     });
     batch.update(db.collection('invoices').doc(id), { status:'مرتجعة', total:0 });
     await batch.commit();
     toast('↩️ تم إرجاع الفاتورة','success');
-  }catch(e){
-    console.error(e); toast('❌ فشل الإرجاع','error');
-  }
+  }catch(e){ console.error(e); toast('❌ فشل الإرجاع','error'); }
 }
 
 /* =========================================================
@@ -1022,6 +1161,220 @@ function generateReport(){
 }
 
 /* =========================================================
+   المستخدمون
+   ========================================================= */
+function renderUsers(){
+  const tbody = document.getElementById('usersTable');
+  if(!tbody) return;
+  const users = cache.users || [];
+  if(!users.length){
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا يوجد موظفون بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td>${u.name || '—'}</td>
+      <td>${u.email || '—'}</td>
+      <td><span class="role-badge">${ROLE_AR[u.role] || u.role}</span></td>
+      <td>
+        <button class="btn sm warning" onclick="editEmployee('${u.id}')">تعديل</button>
+        ${u.id !== currentUser.uid ? `<button class="btn sm danger" onclick="deleteEmployee('${u.id}')">حذف</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addEmployee(){
+  const uid  = document.getElementById('uUid').value.trim();
+  const name = document.getElementById('uName').value.trim();
+  const role = document.getElementById('uRole').value;
+  const email = document.getElementById('uEmail').value.trim().toLowerCase();
+
+  if(!uid || !name){ toast('❌ املأ الـ UID والاسم','error'); return; }
+
+  try{
+    await db.collection('users').doc(uid).set({
+      name, email, role,
+      createdAt: new Date().toISOString()
+    });
+
+    if(role === 'owner'){
+      await db.collection('admins').doc(uid).set({ role:'owner', email, name });
+    }
+
+    toast('✅ تم إضافة الموظف','success');
+    document.getElementById('uUid').value = '';
+    document.getElementById('uName').value = '';
+    document.getElementById('uEmail').value = '';
+  }catch(e){
+    console.error(e); toast('❌ فشل الإضافة: '+e.message,'error');
+  }
+}
+
+function lookupUserUid(){
+  const email = document.getElementById('uEmail').value.trim().toLowerCase();
+  if(!email){ toast('❌ أدخل البريد أولاً','error'); return; }
+
+  const existing = cache.users.find(u => (u.email||'').toLowerCase() === email);
+  if(existing){
+    document.getElementById('uUid').value = existing.id;
+    document.getElementById('uName').value = existing.name || '';
+    toast('✅ تم العثور على UID','success');
+  } else {
+    // ابحث في admins
+    db.collection('admins').where('email','==',email).get().then(snap => {
+      if(!snap.empty){
+        const doc = snap.docs[0];
+        document.getElementById('uUid').value = doc.id;
+        document.getElementById('uName').value = doc.data().name || '';
+        toast('✅ تم العثور على UID في admins','success');
+      } else {
+        toast('⚠️ لم يتم العثور. انسخ UID يدوياً من Firebase Console','warning');
+      }
+    });
+  }
+}
+
+async function editEmployee(id){
+  const user = (cache.users || []).find(u => u.id === id);
+  if(!user) return;
+  const newRole = prompt(`تعديل دور: ${user.name}\n\nاكتب: owner / cashier / tech`, user.role);
+  if(!newRole) return;
+  if(!['owner','cashier','tech'].includes(newRole)){
+    toast('❌ دور غير صحيح','error'); return;
+  }
+  try{
+    await db.collection('users').doc(id).update({ role: newRole });
+    if(newRole === 'owner'){
+      await db.collection('admins').doc(id).set({ role:'owner', email:user.email, name:user.name });
+    } else {
+      const adminDoc = await db.collection('admins').doc(id).get();
+      if(adminDoc.exists) await db.collection('admins').doc(id).delete();
+    }
+    toast('✅ تم التعديل','success');
+  }catch(e){ toast('❌ فشل التعديل','error'); }
+}
+
+async function deleteEmployee(id){
+  if(!confirm('حذف هذا الموظف من النظام؟')) return;
+  try{
+    await db.collection('users').doc(id).delete();
+    const adminDoc = await db.collection('admins').doc(id).get();
+    if(adminDoc.exists) await db.collection('admins').doc(id).delete();
+    toast('🗑️ تم الحذف');
+  }catch(e){ toast('❌ فشل الحذف','error'); }
+}
+
+/* =========================================================
+   الإعدادات
+   ========================================================= */
+async function loadShopInfo(){
+  try{
+    const doc = await db.collection('settings').doc('shop').get();
+    if(doc.exists){
+      const d = doc.data();
+      const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+      set('shopName', d.name);
+      set('shopPhone', d.phone);
+      set('shopAddress', d.address);
+    }
+  }catch(e){ console.warn('loadShopInfo:', e); }
+}
+
+async function saveShopInfo(){
+  const data = {
+    name: document.getElementById('shopName').value.trim(),
+    phone: document.getElementById('shopPhone').value.trim(),
+    address: document.getElementById('shopAddress').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  try{
+    await db.collection('settings').doc('shop').set(data, { merge:true });
+    if(data.name) document.getElementById('shopTitle').textContent = '📱 ' + data.name;
+    toast('✅ تم الحفظ','success');
+  }catch(e){ toast('❌ فشل الحفظ: '+e.message,'error'); }
+}
+
+async function createNewAccount(){
+  const email = document.getElementById('newAccEmail').value.trim();
+  const pass  = document.getElementById('newAccPass').value.trim();
+  const name  = document.getElementById('newAccName').value.trim();
+  const role  = document.getElementById('newAccRole').value;
+
+  if(!email || !pass || !name){ toast('❌ املأ البيانات','error'); return; }
+  if(pass.length < 6){ toast('❌ كلمة المرور 6 أحرف على الأقل','error'); return; }
+
+  if(!confirm('⚠️ سيتم إنشاء الحساب وتسجيل خروجك.\nهل أنت متأكد؟')) return;
+
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('users').doc(cred.user.uid).set({
+      name, email, role,
+      createdAt: new Date().toISOString()
+    });
+    if(role === 'owner'){
+      await db.collection('admins').doc(cred.user.uid).set({ role:'owner', email, name });
+    }
+    toast('✅ تم إنشاء الحساب. جاري تسجيل الخروج...','success');
+    setTimeout(async () => { await auth.signOut(); location.reload(); }, 1500);
+  }catch(e){
+    console.error('createNewAccount:', e);
+    let msg = 'فشل الإنشاء: ';
+    if(e.code === 'auth/email-already-in-use') msg = 'البريد مستخدم بالفعل';
+    else if(e.code === 'auth/weak-password') msg = 'كلمة المرور ضعيفة';
+    else if(e.code === 'auth/invalid-email') msg = 'بريد غير صحيح';
+    else msg += e.message;
+    toast('❌ ' + msg, 'error');
+  }
+}
+
+/* =========================================================
+   نسخ احتياطي
+   ========================================================= */
+function exportBackup(){
+  const data = {
+    exportedAt: new Date().toISOString(),
+    shop:        cache.shop || {},
+    products:    cache.products,
+    invoices:    cache.invoices,
+    maintenance: cache.maintenance,
+    expenses:    cache.expenses,
+    users:       cache.users
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('⬇️ تم تنزيل النسخة','success');
+}
+
+async function importBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(!confirm('⚠️ سيتم إضافة البيانات. متابعة؟')) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try{
+      const data = JSON.parse(e.target.result);
+      let count = 0;
+      for(const p of (data.products || [])){
+        const { id, ...rest } = p;
+        await db.collection('products').add(rest);
+        count++;
+      }
+      toast(`✅ تم استيراد ${count} منتج`,'success');
+    }catch(err){
+      toast('❌ ملف غير صحيح: ' + err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================
    بدء التشغيل
    ========================================================= */
 window.addEventListener('DOMContentLoaded', () => {
@@ -1033,7 +1386,8 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   const d = document.getElementById('expDate');
   if(d) d.value = today();
+  renderCart();
 });
 </script>
 </body>
-</html>
+            </html>
