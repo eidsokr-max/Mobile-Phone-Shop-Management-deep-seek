@@ -151,20 +151,20 @@ tr:hover{background:#f9f9f9}
 
 <!-- مؤشر المزامنة -->
 <div id="syncIndicator" class="sync-status" style="display:none">☁️ متزامن</div>
+
 <script type="module">
 /* ============ Firebase ============ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { 
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, 
-  getDocs, getDoc, onSnapshot, query, orderBy, serverTimestamp,
-  writeBatch
+  onSnapshot, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { 
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDz6zwskI2aamqjFJ-OG-xvXhWBXDnGIMo",
+  apiKey: "AIzaSyDz6zwskT2aamqjFJ-0G-xvXhWBXDnGIMo",
   authDomain: "konter-app-11714.firebaseapp.com",
   projectId: "konter-app-11714",
   storageBucket: "konter-app-11714.firebasestorage.app",
@@ -182,11 +182,9 @@ const today = () => new Date().toISOString().split('T')[0];
 window.openModal = id => document.getElementById(id).classList.add('active');
 window.closeModal = id => document.getElementById(id).classList.remove('active');
 
-// حفظ البيانات محلياً للوصول السريع
 window.appData = { products:[], customers:[], suppliers:[], purchases:[], sales:[], cash:[], expenses:[] };
 window.listeners = [];
 
-// عرض مؤشر المزامنة
 function showSync(text, type='syncing'){
   const el = document.getElementById('syncIndicator');
   el.style.display = 'block';
@@ -211,12 +209,15 @@ window.doLogin = async function(){
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e){
+    console.error(e);
     let msg = 'خطأ في الدخول';
     if(e.code === 'auth/user-not-found') msg = 'الإيميل غير مسجل';
     else if(e.code === 'auth/wrong-password') msg = 'كلمة المرور خطأ';
     else if(e.code === 'auth/invalid-email') msg = 'الإيميل غير صحيح';
     else if(e.code === 'auth/invalid-credential') msg = 'بيانات الدخول خطأ';
     else if(e.code === 'auth/too-many-requests') msg = 'محاولات كثيرة، انتظر قليلاً';
+    else if(e.code === 'auth/api-key-not-valid') msg = 'مفتاح API غير صحيح';
+    else if(e.message) msg = e.message;
     errEl.textContent = msg;
   } finally {
     btn.disabled = false;
@@ -238,17 +239,14 @@ onAuthStateChanged(auth, async (user) => {
   loadingEl.classList.add('hidden');
   
   if(user){
-    // مسجل دخول
     document.getElementById('user-email').textContent = user.email;
     loginEl.classList.add('hidden');
     mainEl.classList.add('active');
     await initRealtimeListeners();
     showPage('dashboard');
   } else {
-    // غير مسجل
     loginEl.classList.remove('hidden');
     mainEl.classList.remove('active');
-    // إلغاء المستمعين
     window.listeners.forEach(u => u());
     window.listeners = [];
   }
@@ -271,7 +269,6 @@ async function initRealtimeListeners(){
         showSync('☁️ متزامن', 'ok');
       }
       
-      // إعادة رسم الصفحة الحالية لو موجودة
       const activePage = document.querySelector('.main-nav button.active');
       if(activePage){
         const pageName = activePage.dataset.page;
@@ -314,7 +311,6 @@ window.dbGet = function(colName, id){
   return (window.appData[colName] || []).find(x => x.id === id);
 };
 
-/* ============ توليد رقم فاتورة ============ */
 window.genInvoiceNo = function(prefix, colName){
   const items = window.appData[colName] || [];
   let max = 0;
@@ -325,7 +321,6 @@ window.genInvoiceNo = function(prefix, colName){
   return `${prefix}-${String(max+1).padStart(4,'0')}`;
 };
 
-/* ============ التنقل بين الصفحات ============ */
 window.showPage = async function(name, btn){
   document.querySelectorAll('.main-nav button').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -342,7 +337,8 @@ window.showPage = async function(name, btn){
     console.error(e);
   }
 };
-  /* ============ لوحة التحكم ============ */
+
+/* ============ لوحة التحكم ============ */
 window.render_dashboard = async function(c){
   const products = dbGetAll('products');
   const sales = dbGetAll('sales');
@@ -674,7 +670,6 @@ window.savePurchase = async function(){
     items: lines
   });
   
-  // تحديث المخزون ومتوسط التكلفة
   for(const l of lines){
     const p = dbGet('products', l.product_id);
     if(p){
@@ -1420,7 +1415,7 @@ window.render_backup = async function(c){
     </div>
     <div class="card">
       <h3 style="color:#dc3545;margin-bottom:10px">⚠️ معلومات</h3>
-      <p style="font-size:.85rem;color:#666">بياناتك محفوظة سحابياً على Firebase. تحتاج فقط تسجيل الدخول من أي جهاز لرؤيتها. لا يوجد حذف جماعي (لأمان البيانات).</p>
+      <p style="font-size:.85rem;color:#666">بياناتك محفوظة سحابياً على Firebase. تحتاج فقط تسجيل الدخول من أي جهاز لرؤيتها.</p>
     </div>`;
 };
 
@@ -1449,7 +1444,7 @@ window.importData = async function(){
   for(const k of ['products','customers','suppliers','purchases','sales','cash','expenses']){
     if(data[k] && Array.isArray(data[k])){
       for(const it of data[k]){
-        const { id, ...rest } = it; // حذف الـ id القديم
+        const { id, ...rest } = it;
         await dbAdd(k, rest);
         count++;
       }
@@ -1458,7 +1453,6 @@ window.importData = async function(){
   showSync('✅ تم استيراد ' + count + ' سجل', 'ok');
   alert('تم استيراد ' + count + ' سجل بنجاح');
 };
-
 </script>
 </body>
 </html>
