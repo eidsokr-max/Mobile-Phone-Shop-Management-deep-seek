@@ -8,15 +8,31 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
 body{background:#f5f5f5;color:#333;direction:rtl;padding-bottom:70px}
-.screen{display:none}.screen.active{display:block}
-#login-screen{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#8B4513,#D2691E)}
+.screen{display:none}
+.screen.active{display:block}
+
+/* شاشة الدخول - تختفي فوراً عند الدخول */
+#login-screen{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  justify-content:center;align-items:center;
+  background:linear-gradient(135deg,#8B4513,#D2691E);
+  z-index:9999;
+}
+#login-screen.hidden{display:none!important}
+
 .login-box{background:#fff;padding:30px;border-radius:15px;width:90%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center}
 .login-box h1{color:#8B4513;margin-bottom:20px;font-size:1.3rem}
 .login-box input{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;font-size:1rem}
 .login-box button{width:100%;padding:12px;background:#8B4513;color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;margin-top:10px}
 .hint{color:#999;font-size:.85rem;margin-top:10px}
+
+/* الشاشة الرئيسية */
+#main-screen{display:none}
+#main-screen.active{display:block}
+
 header{background:#8B4513;color:#fff;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
 header h1{font-size:1rem}
+.btn-logout{background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
 .main-nav{display:flex;overflow-x:auto;background:#fff;padding:5px;gap:5px;border-bottom:1px solid #ddd;position:sticky;top:48px;z-index:99}
 .main-nav button{padding:8px 12px;border:none;background:#f0f0f0;border-radius:6px;white-space:nowrap;cursor:pointer;font-size:.85rem}
 .main-nav button.active{background:#8B4513;color:#fff}
@@ -57,11 +73,10 @@ tr:hover{background:#f9f9f9}
 .invoice-view .inv-header h2{color:#8B4513;font-size:1.2rem}
 .invoice-view .inv-meta{display:flex;justify-content:space-between;font-size:.85rem;color:#555;margin-bottom:15px;flex-wrap:wrap;gap:8px}
 .invoice-view table{font-size:.85rem;margin-bottom:15px}
-.invoice-view .inv-footer{display:flex;justify-content:space-between;font-size:.9rem;padding-top:10px;border-top:1px dashed #ccc}
 .search-box{margin-bottom:10px}
 .search-box input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:.95rem}
 .prod-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
-.prod-stat-card{background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #f0e0d0;border-radius:10px;padding:12px;position:relative}
+.prod-stat-card{background:linear-gradient(135deg,#fff9f0,#fff);border:1px solid #f0e0d0;border-radius:10px;padding:12px}
 .prod-stat-card .pname{font-weight:bold;color:#8B4513;font-size:.9rem;margin-bottom:6px}
 .prod-stat-card .prow{display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;color:#555}
 .prod-stat-card .prow b{color:#333}
@@ -69,6 +84,7 @@ tr:hover{background:#f9f9f9}
 .paid-row{display:flex;gap:5px;align-items:center}
 .paid-row input{flex:1;padding:6px;text-align:center}
 .btn-fill{background:#17a2b8;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;white-space:nowrap}
+
 @media print{
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
@@ -76,16 +92,21 @@ tr:hover{background:#f9f9f9}
   .no-print{display:none!important}
 }
 @media(max-width:600px){
-  table{font-size:.75rem}th,td{padding:6px 4px}
+  table{font-size:.75rem}
+  th,td{padding:6px 4px}
   .line{grid-template-columns:1fr 1fr;grid-template-areas:"p p" "q r" "t t";gap:4px}
-  .line select{grid-area:p}.line .ln-q{grid-area:q}.line .ln-r{grid-area:r}.line .line-total{grid-area:t}.line button{grid-area:t;justify-self:end;margin-top:2px}
+  .line select{grid-area:p}
+  .line .ln-q{grid-area:q}
+  .line .ln-r{grid-area:r}
+  .line .line-total{grid-area:t}
+  .line button{grid-area:t;justify-self:end;margin-top:2px}
 }
 </style>
 </head>
 <body>
 
 <!-- شاشة الدخول -->
-<div id="login-screen" class="screen active">
+<div id="login-screen">
   <div class="login-box">
     <h1>🪵 حسابات الكونتر</h1>
     <input type="text" id="username" placeholder="اسم المستخدم" value="admin">
@@ -96,10 +117,10 @@ tr:hover{background:#f9f9f9}
 </div>
 
 <!-- الشاشة الرئيسية -->
-<div id="main-screen" class="screen">
+<div id="main-screen">
   <header>
     <h1>🪵 حسابات الكونتر</h1>
-    <button class="btn-logout" onclick="logout()" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer">🚪 خروج</button>
+    <button class="btn-logout" onclick="logout()">🚪 خروج</button>
   </header>
 
   <nav class="main-nav">
@@ -114,6 +135,7 @@ tr:hover{background:#f9f9f9}
     <button data-page="reports" onclick="showPage('reports',this)">📊 تقارير</button>
     <button data-page="backup" onclick="showPage('backup',this)">💾 نسخ احتياطي</button>
   </nav>
+
   <main id="page-content"></main>
 </div>
 
@@ -171,13 +193,20 @@ function login(){
   const saved=JSON.parse(localStorage.getItem('konter_user')||'{"username":"admin","password":"admin123"}');
   if(u===saved.username&&p===saved.password){
     localStorage.setItem('logged_in','true');
-    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('main-screen').classList.add('active');
     showPage('dashboard');
-  }else alert('بيانات خاطئة');
+  }else{
+    alert('بيانات خاطئة');
+  }
 }
 function logout(){
-  if(confirm('خروج؟')){localStorage.removeItem('logged_in');location.reload()}
+  if(confirm('خروج؟')){
+    localStorage.removeItem('logged_in');
+    document.getElementById('main-screen').classList.remove('active');
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('password').value='';
+  }
 }
 
 /* ============ التنقل ============ */
@@ -331,7 +360,7 @@ async function saveProduct(){
     data.avg_cost=old.avg_cost||data.purchase_price;
     await dbUpdate('products',data);
   }else{
-    data.current_stock=0;      // ← يبدأ من صفر
+    data.current_stock=0;
     data.avg_cost=data.purchase_price;
     await dbAdd('products',data);
   }
@@ -1188,7 +1217,7 @@ async function render_backup(c){
 async function exportData(){
   const data={};
   for(const s of STORES)data[s]=await dbGetAll(s);
-  data._meta={exported_at:new Date().toISOString(),version:5};
+  data._meta={exported_at:new Date().toISOString(),version:6};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1218,7 +1247,7 @@ async function wipeData(){
 window.addEventListener('load',async()=>{
   await openDB();
   if(localStorage.getItem('logged_in')==='true'){
-    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('main-screen').classList.add('active');
     showPage('dashboard');
   }
