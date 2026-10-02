@@ -47,6 +47,8 @@ tr:hover{background:#f9f9f9}
 .btn-danger{background:#dc3545;color:#fff}
 .btn-secondary{background:#6c757d;color:#fff}
 .btn-wa{background:#25D366;color:#fff}
+.btn-info{background:#17a2b8;color:#fff}
+.btn-warning{background:#ffc107;color:#333}
 .btn-sm{padding:4px 8px;font-size:.75rem}
 .form-group{margin-bottom:12px}
 .form-group label{display:block;margin-bottom:5px;font-size:.9rem;color:#555}
@@ -77,29 +79,32 @@ tr:hover{background:#f9f9f9}
 .sync-status{position:fixed;bottom:10px;left:10px;background:#28a745;color:#fff;padding:6px 12px;border-radius:20px;font-size:.75rem;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:all .3s}
 .sync-status.offline{background:#dc3545}
 .sync-status.syncing{background:#ffc107;color:#333}
-
-/* شاشة الفئات */
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
 .cat-card{background:linear-gradient(135deg,#fff9f0,#fff);border:2px solid #f0e0d0;border-radius:12px;padding:15px;cursor:pointer;transition:all .2s;text-align:center}
 .cat-card:hover{border-color:#8B4513;transform:translateY(-2px);box-shadow:0 4px 12px rgba(139,69,19,.15)}
 .cat-card .cat-icon{font-size:2rem;margin-bottom:8px}
 .cat-card .cat-name{font-weight:bold;color:#8B4513;font-size:.95rem;margin-bottom:6px}
 .cat-card .cat-count{font-size:.75rem;color:#999;background:#f5f5f5;padding:3px 8px;border-radius:10px;display:inline-block}
-
-/* عرض الرصيد */
 .stock-display{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .stock-main{font-weight:bold;color:#8B4513}
 .stock-sub{font-size:.7rem;color:#999}
-
-/* معلومات الصنف */
 .product-info{font-size:.75rem;color:#666;margin-top:3px}
 .unit-badge{display:inline-block;background:#e9ecef;padding:2px 6px;border-radius:4px;font-size:.7rem;color:#495057;margin-left:3px}
-
-/* breadcrumb */
 .breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.85rem;color:#666}
 .breadcrumb a{color:#8B4513;text-decoration:none;cursor:pointer}
 .breadcrumb a:hover{text-decoration:underline}
-
+.balance-box{background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;padding:20px;border-radius:12px;text-align:center;margin-bottom:15px}
+.balance-box .balance-label{font-size:.85rem;opacity:.9}
+.balance-box .balance-value{font-size:2rem;font-weight:bold;margin-top:5px}
+.balance-box .balance-type{font-size:.75rem;opacity:.8;margin-top:5px}
+.action-buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:15px}
+.action-buttons button{padding:12px 8px;font-size:.8rem;font-weight:bold}
+.tx-type-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.7rem;font-weight:bold}
+.tx-sale{background:#d1ecf1;color:#0c5460}
+.tx-payment{background:#d4edda;color:#155724}
+.tx-debt{background:#f8d7da;color:#721c24}
+.tx-adjustment{background:#fff3cd;color:#856404}
+.tx-purchase{background:#e2e3e5;color:#383d41}
 @media print{
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
@@ -115,18 +120,17 @@ tr:hover{background:#f9f9f9}
   .line .ln-r{grid-area:r}
   .line .line-total{grid-area:t}
   .line button{grid-area:t;justify-self:end;margin-top:2px}
+  .action-buttons{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- شاشة التحميل -->
 <div id="loading-screen" style="display:flex">
   <div class="spinner"></div>
   <div>جاري التحميل...</div>
 </div>
 
-<!-- شاشة الدخول -->
 <div id="login-screen" class="hidden">
   <div class="login-box">
     <h1>🪵 حسابات الكونتر</h1>
@@ -138,7 +142,6 @@ tr:hover{background:#f9f9f9}
   </div>
 </div>
 
-<!-- الشاشة الرئيسية -->
 <div id="main-screen">
   <header>
     <div>
@@ -165,17 +168,14 @@ tr:hover{background:#f9f9f9}
   <main id="page-content"></main>
 </div>
 
-<!-- منطقة الطباعة -->
 <div id="printArea" style="display:none"></div>
-
-<!-- مؤشر المزامنة -->
 <div id="syncIndicator" class="sync-status" style="display:none">☁️ متزامن</div>
+
 <script type="module">
-/* ============ Firebase ============ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { 
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, 
-  onSnapshot, query, serverTimestamp, getDocs, where
+  onSnapshot, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { 
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -194,25 +194,24 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/* ============ أدوات ============ */
 const fmt = n => Number(n||0).toLocaleString('ar-EG',{maximumFractionDigits:2});
 const today = () => new Date().toISOString().split('T')[0];
 window.openModal = id => document.getElementById(id).classList.add('active');
 window.closeModal = id => document.getElementById(id).classList.remove('active');
 
-// القوائم
 const UNITS = ['لوح','كرتونة','كيس','كيلو','متر','متر مربع','قطعة','طقم','دستة','باكو'];
 window.UNITS = UNITS;
 
-// البيانات
 window.appData = { 
-  categories: [], products: [], customers: [], suppliers: [], 
+  categories: [], products: [], customers: [], customer_transactions: [],
+  suppliers: [], supplier_transactions: [],
   purchases: [], sales: [], cash: [], expenses: [] 
 };
 window.listeners = [];
-window.currentCategoryId = null; // للتنقل داخل الأصناف
+window.currentCategoryId = null;
+window.currentCustomerId = null;
+window.currentSupplierId = null;
 
-// مؤشر المزامنة
 function showSync(text, type='syncing'){
   const el = document.getElementById('syncIndicator');
   el.style.display = 'block';
@@ -228,22 +227,19 @@ window.doLogin = async function(){
   const pass = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-err');
   const btn = document.getElementById('login-btn');
-  
   errEl.textContent = '';
   if(!email || !pass){ errEl.textContent = 'أدخل الإيميل وكلمة المرور'; return; }
-  
   btn.disabled = true;
   btn.textContent = 'جاري الدخول...';
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e){
-    console.error(e);
     let msg = 'خطأ في الدخول';
     if(e.code === 'auth/user-not-found') msg = 'الإيميل غير مسجل';
     else if(e.code === 'auth/wrong-password') msg = 'كلمة المرور خطأ';
     else if(e.code === 'auth/invalid-email') msg = 'الإيميل غير صحيح';
     else if(e.code === 'auth/invalid-credential') msg = 'بيانات الدخول خطأ';
-    else if(e.code === 'auth/too-many-requests') msg = 'محاولات كثيرة، انتظر قليلاً';
+    else if(e.code === 'auth/too-many-requests') msg = 'محاولات كثيرة';
     errEl.textContent = msg;
   } finally {
     btn.disabled = false;
@@ -256,14 +252,11 @@ window.doLogout = async function(){
   await signOut(auth);
 };
 
-/* ============ مراقبة الدخول ============ */
 onAuthStateChanged(auth, async (user) => {
   const loadingEl = document.getElementById('loading-screen');
   const loginEl = document.getElementById('login-screen');
   const mainEl = document.getElementById('main-screen');
-  
   loadingEl.classList.add('hidden');
-  
   if(user){
     document.getElementById('user-email').textContent = user.email;
     loginEl.classList.add('hidden');
@@ -278,24 +271,16 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* ============ المزامنة اللحظية ============ */
 async function initRealtimeListeners(){
   showSync('☁️ جاري التحميل...', 'syncing');
-  
-  const collections = ['categories','products','customers','suppliers','purchases','sales','cash','expenses'];
+  const collections = ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'];
   let loadedCount = 0;
-  
   collections.forEach(colName => {
     const q = query(collection(db, colName));
     const unsub = onSnapshot(q, (snap) => {
       window.appData[colName] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      
       loadedCount++;
-      if(loadedCount <= collections.length){
-        showSync('☁️ متزامن', 'ok');
-      }
-      
-      // إعادة رسم الصفحة الحالية
+      if(loadedCount <= collections.length) showSync('☁️ متزامن', 'ok');
       const activePage = document.querySelector('.main-nav button.active');
       if(activePage){
         const pageName = activePage.dataset.page;
@@ -308,12 +293,10 @@ async function initRealtimeListeners(){
       console.error('Sync error:', colName, err);
       showSync('⚠️ خطأ في المزامنة', 'offline');
     });
-    
     window.listeners.push(unsub);
   });
 }
 
-/* ============ العمليات على قاعدة البيانات ============ */
 window.dbAdd = async function(colName, data){
   data.createdAt = serverTimestamp();
   data.updatedAt = serverTimestamp();
@@ -330,13 +313,8 @@ window.dbDelete = async function(colName, id){
   await deleteDoc(doc(db, colName, id));
 };
 
-window.dbGetAll = function(colName){
-  return window.appData[colName] || [];
-};
-
-window.dbGet = function(colName, id){
-  return (window.appData[colName] || []).find(x => x.id === id);
-};
+window.dbGetAll = function(colName){ return window.appData[colName] || []; };
+window.dbGet = function(colName, id){ return (window.appData[colName] || []).find(x => x.id === id); };
 
 window.genInvoiceNo = function(prefix, colName){
   const items = window.appData[colName] || [];
@@ -348,12 +326,10 @@ window.genInvoiceNo = function(prefix, colName){
   return `${prefix}-${String(max+1).padStart(4,'0')}`;
 };
 
-/* ============ التنقل ============ */
 window.showPage = async function(name, btn){
   document.querySelectorAll('.main-nav button').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   else document.querySelector(`.main-nav button[data-page="${name}"]`)?.classList.add('active');
-  
   const c = document.getElementById('page-content');
   c.innerHTML = '<div class="card">جاري التحميل...</div>';
   try {
@@ -376,7 +352,6 @@ window.render_dashboard = async function(c){
   const suppliers = dbGetAll('suppliers');
   const categories = dbGetAll('categories');
   const t = today();
-  
   const salesToday = sales.filter(s => s.invoice_date === t).reduce((a,s) => a + (s.total_amount||0), 0);
   const purToday = purchases.filter(p => p.invoice_date === t).reduce((a,p) => a + (p.total_amount||0), 0);
   const cashBalance = cash.reduce((a,x) => a + (x.trans_type==='in' ? (x.amount||0) : -(x.amount||0)), 0);
@@ -395,7 +370,6 @@ window.render_dashboard = async function(c){
       <div class="stat-box"><div class="label">مستحق للموردين</div><div class="value">${fmt(supDebt)}</div></div>
     </div>
     ${lowStock>0 ? `<div class="card" style="background:#fff3cd;color:#856404">⚠️ يوجد ${lowStock} صنف برصيد صفر أو سالب</div>` : ''}
-    
     <div class="card">
       <h3 style="margin-bottom:10px;color:#8B4513">📊 ملخص عام</h3>
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:.9rem">
@@ -411,7 +385,6 @@ window.render_dashboard = async function(c){
         <span>عدد الموردين</span><b>${suppliers.length}</b>
       </div>
     </div>
-    
     <div class="card">
       <h3 style="margin-bottom:10px;color:#8B4513">آخر الحركات</h3>
       ${cash.slice(-10).reverse().map(x => `
@@ -426,7 +399,6 @@ window.render_dashboard = async function(c){
 window.render_categories = async function(c){
   const cats = dbGetAll('categories');
   const products = dbGetAll('products');
-  
   c.innerHTML = `
     <div class="card"><button class="btn btn-primary" onclick="openCategoryModal()">➕ إضافة فئة</button></div>
     <div class="card">
@@ -447,7 +419,7 @@ window.render_categories = async function(c){
       <h2 id="catTitle">إضافة فئة</h2>
       <input type="hidden" id="cat_id">
       <div class="form-group"><label>اسم الفئة *</label><input id="cat_name" placeholder="مثال: كونتر مميز"></div>
-      <div class="form-group"><label>وصف (اختياري)</label><input id="cat_desc" placeholder="ملاحظات عن الفئة"></div>
+      <div class="form-group"><label>وصف (اختياري)</label><input id="cat_desc"></div>
       <button class="btn btn-success" onclick="saveCategory()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('categoryModal')">إلغاء</button>
     </div></div>`;
@@ -466,7 +438,6 @@ window.saveCategory = async function(){
   const name = document.getElementById('cat_name').value.trim();
   const desc = document.getElementById('cat_desc').value.trim();
   if(!name){ alert('اسم الفئة مطلوب'); return; }
-  
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('categories', id, { name, description: desc });
   else await dbAdd('categories', { name, description: desc });
@@ -477,7 +448,6 @@ window.saveCategory = async function(){
 window.openCategoryProducts = function(catId){
   window.currentCategoryId = catId;
   showPage('products');
-  // تحديث زر النافبار
   document.querySelectorAll('.main-nav button').forEach(b => b.classList.remove('active'));
   document.querySelector('.main-nav button[data-page="products"]')?.classList.add('active');
 };
@@ -486,19 +456,14 @@ window.openCategoryProducts = function(catId){
 window.render_products = async function(c){
   const cats = dbGetAll('categories');
   const allProducts = dbGetAll('products');
-  
-  // لو داخل من فئة محددة
   if(window.currentCategoryId){
     const cat = dbGet('categories', window.currentCategoryId);
     if(!cat){ window.currentCategoryId = null; return render_products(c); }
-    
     const products = allProducts.filter(p => p.category_id === cat.id);
-    
     c.innerHTML = `
       <div class="breadcrumb">
         <a onclick="window.currentCategoryId=null;showPage('products')">📦 الأصناف</a>
-        <span>›</span>
-        <b>${cat.name}</b>
+        <span>›</span><b>${cat.name}</b>
       </div>
       <div class="card">
         <button class="btn btn-primary" onclick="openProductModal('${cat.id}')">➕ إضافة صنف</button>
@@ -508,7 +473,7 @@ window.render_products = async function(c){
         <table>
           <thead><tr><th>الاسم</th><th>الرصيد</th><th>سعر البيع</th><th></th></tr></thead>
           <tbody>
-            ${products.length === 0 ? '<tr><td colspan="4" class="empty">لا أصناف في هذه الفئة</td></tr>' :
+            ${products.length === 0 ? '<tr><td colspan="4" class="empty">لا أصناف</td></tr>' :
               products.map(p => {
                 const stockDisplay = renderStockDisplay(p);
                 return `<tr>
@@ -533,14 +498,10 @@ window.render_products = async function(c){
       ${renderProductModal()}`;
     return;
   }
-  
-  // شاشة عرض كل الأصناف (لو دخل مباشرة)
   c.innerHTML = `
+    <div class="card"><p style="font-size:.9rem;color:#666">اختر فئة لعرض أصنافها:</p></div>
     <div class="card">
-      <p style="font-size:.9rem;color:#666">اختر فئة لعرض أصنافها:</p>
-    </div>
-    <div class="card">
-      ${cats.length === 0 ? '<div class="empty">لا توجد فئات. أضف فئة أولاً من شاشة "الفئات"</div>' :
+      ${cats.length === 0 ? '<div class="empty">لا توجد فئات. أضف فئة أولاً</div>' :
         `<div class="cat-grid">
           ${cats.map(cat => {
             const prodCount = allProducts.filter(p => p.category_id === cat.id).length;
@@ -582,7 +543,6 @@ function renderProductModal(){
       <select id="p_cat">${dbGetAll('categories').map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>اسم الصنف *</label><input id="p_name" placeholder="مثال: أبيض 18مم"></div>
-    
     <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
       <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">📏 وحدات القياس</div>
       <div class="form-group"><label>وحدة الشراء *</label>
@@ -594,10 +554,8 @@ function renderProductModal(){
       <div class="form-group" id="factor_group">
         <label>كم <span id="factor_unit_sell">قطعة</span> في <span id="factor_unit_buy">الكرتونة</span>؟ *</label>
         <input type="number" id="p_factor" value="1" min="1" oninput="updateConversionHint()">
-        <div class="hint" id="factor_hint">مثال: الكرتونة فيها 12 طقم → اكتب 12</div>
       </div>
     </div>
-    
     <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
       <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">💰 الأسعار</div>
       <div class="form-group"><label>سعر شراء <span id="label_unit_buy">الوحدة</span> *</label>
@@ -607,7 +565,6 @@ function renderProductModal(){
         <input type="number" id="p_sp" value="0">
       </div>
     </div>
-    
     <button class="btn btn-success" onclick="saveProduct()">حفظ</button>
     <button class="btn btn-secondary" onclick="closeModal('productModal')">إلغاء</button>
   </div></div>`;
@@ -616,7 +573,6 @@ function renderProductModal(){
 window.openProductModal = function(catId){
   const cats = dbGetAll('categories');
   if(cats.length === 0){ alert('أضف فئة أولاً'); return; }
-  
   document.getElementById('productTitle').textContent = 'إضافة صنف';
   document.getElementById('p_id').value = '';
   document.getElementById('p_cat').value = catId || cats[0].id;
@@ -626,11 +582,8 @@ window.openProductModal = function(catId){
   document.getElementById('p_factor').value = 1;
   document.getElementById('p_pp').value = 0;
   document.getElementById('p_sp').value = 0;
-  
-  // Event listeners للتحديث التلقائي
   document.getElementById('p_unit_buy').onchange = updateConversionHint;
   document.getElementById('p_unit_sell').onchange = updateConversionHint;
-  
   updateConversionHint();
   openModal('productModal');
 };
@@ -639,7 +592,6 @@ window.updateConversionHint = function(){
   const ub = document.getElementById('p_unit_buy').value;
   const us = document.getElementById('p_unit_sell').value;
   const sameUnit = ub === us;
-  
   const factorGroup = document.getElementById('factor_group');
   if(sameUnit){
     factorGroup.style.display = 'none';
@@ -649,7 +601,6 @@ window.updateConversionHint = function(){
     document.getElementById('factor_unit_sell').textContent = us;
     document.getElementById('factor_unit_buy').textContent = ub;
   }
-  
   document.getElementById('label_unit_buy').textContent = ub;
   document.getElementById('label_unit_sell').textContent = us;
 };
@@ -665,7 +616,6 @@ window.editProduct = function(id){
   document.getElementById('p_factor').value = p.conversion_factor || 1;
   document.getElementById('p_pp').value = p.purchase_price || 0;
   document.getElementById('p_sp').value = p.sale_price || 0;
-  
   document.getElementById('p_unit_buy').onchange = updateConversionHint;
   document.getElementById('p_unit_sell').onchange = updateConversionHint;
   updateConversionHint();
@@ -681,26 +631,13 @@ window.saveProduct = async function(){
   let factor = +document.getElementById('p_factor').value || 1;
   const pp = +document.getElementById('p_pp').value || 0;
   const sp = +document.getElementById('p_sp').value || 0;
-  
   if(!name){ alert('اسم الصنف مطلوب'); return; }
   if(unit_buy === unit_sell) factor = 1;
   if(unit_buy !== unit_sell && factor < 1){ alert('معامل التحويل يجب أن يكون 1 على الأقل'); return; }
-  
-  const data = {
-    category_id, name, unit_buy, unit_sell,
-    conversion_factor: factor,
-    purchase_price: pp,
-    sale_price: sp
-  };
-  
+  const data = { category_id, name, unit_buy, unit_sell, conversion_factor: factor, purchase_price: pp, sale_price: sp };
   showSync('☁️ جاري الحفظ...', 'syncing');
-  if(id){
-    await dbUpdate('products', id, data);
-  } else {
-    data.current_stock = 0;
-    data.avg_cost = pp / factor; // متوسط تكلفة الوحدة الصغيرة
-    await dbAdd('products', data);
-  }
+  if(id) await dbUpdate('products', id, data);
+  else { data.current_stock = 0; data.avg_cost = pp / factor; await dbAdd('products', data); }
   showSync('✅ تم الحفظ', 'ok');
   closeModal('productModal');
 };
@@ -711,7 +648,8 @@ window.delProduct = async function(id){
   await dbDelete('products', id);
   showSync('✅ تم الحذف', 'ok');
 };
-  /* ============ المشتريات ============ */
+
+/* ============ المشتريات ============ */
 window.render_purchases = async function(c){
   const purchases = dbGetAll('purchases').slice().reverse();
   const suppliers = dbGetAll('suppliers');
@@ -871,7 +809,6 @@ window.savePurchase = async function(){
   const sid = document.getElementById('pu_sup').value;
   const d = document.getElementById('pu_date').value;
   if(!sid){ alert('اختر المورد'); return; }
-  
   const lines = [];
   document.querySelectorAll('.pu-line').forEach(l => {
     const pid = l.querySelector('.ln-p').value;
@@ -880,73 +817,61 @@ window.savePurchase = async function(){
     if(pid && q > 0) lines.push({ product_id: pid, quantity: q, unit_price: r, total: q*r });
   });
   if(!lines.length){ alert('أضف أصنافاً'); return; }
-  
   const total = lines.reduce((a,l) => a + l.total, 0);
   const paid = +document.getElementById('pu_paid').value || 0;
   const rem = total - paid;
   const inv = document.getElementById('pu_no').value;
   const supplier = dbGet('suppliers', sid);
-  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  
-  // نجهز الـ items مع الوحدات والتحويل
   const itemsData = [];
   for(const l of lines){
     const p = dbGet('products', l.product_id);
     if(!p) continue;
     itemsData.push({
-      product_id: l.product_id,
-      quantity: l.quantity,
-      unit: p.unit_buy || 'وحدة',
-      unit_price: l.unit_price,
-      total: l.total,
-      conversion_factor: p.conversion_factor || 1,
-      unit_sell: p.unit_sell || 'وحدة'
+      product_id: l.product_id, quantity: l.quantity, unit: p.unit_buy || 'وحدة',
+      unit_price: l.unit_price, total: l.total,
+      conversion_factor: p.conversion_factor || 1, unit_sell: p.unit_sell || 'وحدة'
     });
   }
-  
   await dbAdd('purchases', {
     invoice_no: inv, invoice_date: d, supplier_id: sid,
     supplier_name: supplier?.name || '',
-    total_amount: total, paid_amount: paid, remaining: rem,
-    items: itemsData
+    total_amount: total, paid_amount: paid, remaining: rem, items: itemsData
   });
-  
-  // تحديث المخزون ومتوسط التكلفة
   for(const l of lines){
     const p = dbGet('products', l.product_id);
     if(!p) continue;
     const factor = p.conversion_factor || 1;
-    const qtyInSmallUnit = l.quantity * factor; // تحويل للوحدة الصغيرة
+    const qtyInSmallUnit = l.quantity * factor;
     const costPerSmallUnit = l.unit_price / factor;
-    
     const oldStock = p.current_stock || 0;
     const oldValue = oldStock * (p.avg_cost || 0);
     const newValue = qtyInSmallUnit * costPerSmallUnit;
     const ns = oldStock + qtyInSmallUnit;
     const newAvg = ns > 0 ? (oldValue + newValue) / ns : costPerSmallUnit;
-    
-    await dbUpdate('products', p.id, {
-      current_stock: ns,
-      avg_cost: newAvg,
-      purchase_price: l.unit_price
-    });
+    await dbUpdate('products', p.id, { current_stock: ns, avg_cost: newAvg, purchase_price: l.unit_price });
   }
-  
   if(supplier){
-    await dbUpdate('suppliers', sid, {
-      current_balance: (supplier.current_balance||0) + rem
+    await dbUpdate('suppliers', sid, { current_balance: (supplier.current_balance||0) + rem });
+    // سجل الحركة
+    await dbAdd('supplier_transactions', {
+      supplier_id: sid, supplier_name: supplier.name,
+      trans_date: d, trans_type: 'purchase',
+      amount: total, description: `فاتورة شراء ${inv}`,
+      balance_after: (supplier.current_balance||0) + rem
     });
+    if(paid > 0){
+      await dbAdd('supplier_transactions', {
+        supplier_id: sid, supplier_name: supplier.name,
+        trans_date: d, trans_type: 'payment',
+        amount: paid, description: `دفعة على فاتورة ${inv}`,
+        balance_after: (supplier.current_balance||0) + rem
+      });
+    }
   }
-  
   if(paid > 0){
-    await dbAdd('cash', {
-      trans_date: d, trans_type: 'out', amount: paid,
-      source: 'مشتريات', reference: inv,
-      description: 'دفعة شراء ' + inv
-    });
+    await dbAdd('cash', { trans_date: d, trans_type: 'out', amount: paid, source: 'مشتريات', reference: inv, description: 'دفعة شراء ' + inv });
   }
-  
   showSync('✅ تم الحفظ', 'ok');
   closeModal('purchaseModal');
 };
@@ -978,10 +903,8 @@ window.viewPurchase = function(id){
         <div><b>التاريخ:</b> ${p.invoice_date}</div>
         <div><b>المورد:</b> ${p.supplier_name||''}</div>
       </div>
-      <table>
-        <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+        <tbody>${rows}</tbody></table>
       <div style="background:#f0f0f0;padding:10px;border-radius:8px">
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span>الإجمالي</span><b>${fmt(p.total_amount)}</b></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المدفوع</span><b style="color:green">${fmt(p.paid_amount)}</b></div>
@@ -1149,7 +1072,6 @@ window.saveSale = async function(){
   const cid = document.getElementById('sa_cus').value;
   const d = document.getElementById('sa_date').value;
   if(!cid){ alert('اختر العميل'); return; }
-  
   const lines = [];
   let err = false;
   document.querySelectorAll('.sa-line').forEach(l => {
@@ -1159,8 +1081,6 @@ window.saveSale = async function(){
     if(pid && q > 0) lines.push({ product_id: pid, quantity: q, unit_price: r, total: q*r });
   });
   if(!lines.length){ alert('أضف أصنافاً'); return; }
-  
-  // تحقق من الرصيد
   for(const l of lines){
     const p = dbGet('products', l.product_id);
     if(!p || (p.current_stock||0) < l.quantity){
@@ -1169,57 +1089,48 @@ window.saveSale = async function(){
     }
   }
   if(err) return;
-  
   const total = lines.reduce((a,l) => a + l.total, 0);
   const paid = +document.getElementById('sa_paid').value || 0;
   const rem = total - paid;
   const inv = document.getElementById('sa_no').value;
   const customer = dbGet('customers', cid);
-  
   const itemsWithCost = lines.map(l => {
     const p = dbGet('products', l.product_id);
     const cost = p?.avg_cost || 0;
-    return { 
-      ...l, 
-      unit: p?.unit_sell || 'وحدة',
-      cost_price: cost, 
-      profit: (l.unit_price - cost) * l.quantity 
-    };
+    return { ...l, unit: p?.unit_sell || 'وحدة', cost_price: cost, profit: (l.unit_price - cost) * l.quantity };
   });
-  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  
   await dbAdd('sales', {
     invoice_no: inv, invoice_date: d, customer_id: cid,
     customer_name: customer?.name || '',
-    total_amount: total, paid_amount: paid, remaining: rem,
-    items: itemsWithCost
+    total_amount: total, paid_amount: paid, remaining: rem, items: itemsWithCost
   });
-  
-  // خصم من المخزون (الوحدة الصغيرة)
   for(const l of lines){
     const p = dbGet('products', l.product_id);
-    if(p){
-      await dbUpdate('products', p.id, {
-        current_stock: (p.current_stock||0) - l.quantity
+    if(p) await dbUpdate('products', p.id, { current_stock: (p.current_stock||0) - l.quantity });
+  }
+  if(customer){
+    const newBal = (customer.current_balance||0) + rem;
+    await dbUpdate('customers', cid, { current_balance: newBal });
+    // سجل الحركة
+    await dbAdd('customer_transactions', {
+      customer_id: cid, customer_name: customer.name,
+      trans_date: d, trans_type: 'sale',
+      amount: total, description: `فاتورة بيع ${inv}`,
+      balance_after: newBal, reference: inv
+    });
+    if(paid > 0){
+      await dbAdd('customer_transactions', {
+        customer_id: cid, customer_name: customer.name,
+        trans_date: d, trans_type: 'payment',
+        amount: paid, description: `دفعة على فاتورة ${inv}`,
+        balance_after: newBal, reference: inv
       });
     }
   }
-  
-  if(customer){
-    await dbUpdate('customers', cid, {
-      current_balance: (customer.current_balance||0) + rem
-    });
-  }
-  
   if(paid > 0){
-    await dbAdd('cash', {
-      trans_date: d, trans_type: 'in', amount: paid,
-      source: 'مبيعات', reference: inv,
-      description: 'تحصيل بيع ' + inv
-    });
+    await dbAdd('cash', { trans_date: d, trans_type: 'in', amount: paid, source: 'مبيعات', reference: inv, description: 'تحصيل بيع ' + inv });
   }
-  
   showSync('✅ تم الحفظ', 'ok');
   closeModal('saleModal');
 };
@@ -1251,10 +1162,8 @@ window.viewSale = function(id){
         <div><b>التاريخ:</b> ${s.invoice_date}</div>
         <div><b>العميل:</b> ${s.customer_name||''}</div>
       </div>
-      <table>
-        <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+        <tbody>${rows}</tbody></table>
       <div style="background:#f0f0f0;padding:10px;border-radius:8px">
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span>الإجمالي</span><b>${fmt(s.total_amount)}</b></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المدفوع</span><b style="color:green">${fmt(s.paid_amount)}</b></div>
@@ -1269,7 +1178,6 @@ window.viewSale = function(id){
   showInvoiceModal(html);
 };
 
-/* ============ عرض الفواتير المشترك ============ */
 window.showInvoiceModal = function(html){
   let m = document.getElementById('invoiceViewModal');
   if(!m){
@@ -1290,19 +1198,14 @@ window.shareInvoice = function(type, id){
   const partyLabel = type === 'sale' ? 'العميل' : 'المورد';
   let text = '';
   text += `🪵 *حسابات الكونتر*\n`;
-  text += `📄 *${type==='sale'?'فاتورة بيع':'فاتورة شراء'}*\n`;
-  text += `━━━━━━━━━━━━━━━\n`;
-  text += `🔢 رقم الفاتورة: ${rec.invoice_no}\n`;
-  text += `📅 التاريخ: ${rec.invoice_date}\n`;
-  text += `👤 ${partyLabel}: ${partyName}\n`;
+  text += `📄 *${type==='sale'?'فاتورة بيع':'فاتورة شراء'}*\n━━━━━━━━━━━━━━━\n`;
+  text += `🔢 رقم الفاتورة: ${rec.invoice_no}\n📅 التاريخ: ${rec.invoice_date}\n👤 ${partyLabel}: ${partyName}\n`;
   text += `━━━━━━━━━━━━━━━\n*الأصناف:*\n`;
   for(const it of rec.items){
     const p = dbGet('products', it.product_id);
     text += `▪️ ${p?.name||''}\n   ${fmt(it.quantity)} ${it.unit||''} × ${fmt(it.unit_price)} = *${fmt(it.total)}*\n`;
   }
-  text += `━━━━━━━━━━━━━━━\n`;
-  text += `💰 الإجمالي: *${fmt(rec.total_amount)}*\n`;
-  text += `✅ المدفوع: ${fmt(rec.paid_amount)}\n`;
+  text += `━━━━━━━━━━━━━━━\n💰 الإجمالي: *${fmt(rec.total_amount)}*\n✅ المدفوع: ${fmt(rec.paid_amount)}\n`;
   if(rec.remaining > 0) text += `⚠️ المتبقي: *${fmt(rec.remaining)}*\n`;
   text += `━━━━━━━━━━━━━━━\nشكراً لتعاملكم معنا 🌟`;
   window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
@@ -1357,10 +1260,19 @@ window.printInvoice = function(type, id){
   setTimeout(() => { pa.style.display = 'none'; pa.innerHTML = ''; }, 500);
 };
 
-/* ============ العملاء ============ */
+/* ============ العملاء (معدّل - مع كشف حساب) ============ */
 window.render_customers = async function(c){
+  // لو داخل على عميل معين → كشف الحساب
+  if(window.currentCustomerId){
+    return renderCustomerStatement(c);
+  }
   const items = dbGetAll('customers');
+  const totalDebt = items.reduce((a,x) => a + (x.current_balance||0), 0);
   c.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;text-align:center">
+      <div style="font-size:.85rem;opacity:.9">إجمالي المديونيات</div>
+      <div style="font-size:1.8rem;font-weight:bold;margin-top:5px">${fmt(totalDebt)}</div>
+    </div>
     <div class="card"><button class="btn btn-primary" onclick="openCustomerModal()">➕ عميل جديد</button></div>
     <div class="card">
       <table>
@@ -1368,9 +1280,13 @@ window.render_customers = async function(c){
         <tbody>
           ${items.length===0 ? '<tr><td colspan="4" class="empty">لا عملاء</td></tr>' :
             items.map(x => `<tr>
-              <td>${x.name}</td><td>${x.phone||''}</td>
-              <td style="color:${(x.current_balance||0)>0?'red':'green'}">${fmt(x.current_balance)}</td>
+              <td><a href="javascript:void(0)" onclick="openCustomerStatement('${x.id}')" style="color:#8B4513;font-weight:bold;text-decoration:none">${x.name}</a></td>
+              <td>${x.phone||''}</td>
+              <td style="color:${(x.current_balance||0)>0?'red':(x.current_balance||0)<0?'green':'#666'};font-weight:bold">
+                ${fmt(x.current_balance)} ${(x.current_balance||0)>0?'(مدين)':(x.current_balance||0)<0?'(دائن)':''}
+              </td>
               <td>
+                <button class="btn btn-info btn-sm" onclick="openCustomerStatement('${x.id}')">كشف</button>
                 <button class="btn btn-secondary btn-sm" onclick="editCustomer('${x.id}')">تعديل</button>
                 <button class="btn btn-danger btn-sm" onclick="delCustomer('${x.id}')">حذف</button>
               </td></tr>`).join('')}
@@ -1386,6 +1302,151 @@ window.render_customers = async function(c){
       <button class="btn btn-success" onclick="saveCustomer()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('customerModal')">إلغاء</button>
     </div></div>`;
+};
+
+window.openCustomerStatement = function(id){
+  window.currentCustomerId = id;
+  showPage('customers');
+};
+
+window.renderCustomerStatement = async function(c){
+  const cust = dbGet('customers', window.currentCustomerId);
+  if(!cust){ window.currentCustomerId = null; return render_customers(c); }
+  
+  const txs = dbGetAll('customer_transactions')
+    .filter(t => t.customer_id === cust.id)
+    .sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+  
+  const balance = cust.current_balance || 0;
+  const balanceType = balance > 0 ? 'مدين (عليه)' : balance < 0 ? 'دائن (له)' : 'متوازن';
+  const balanceColor = balance > 0 ? '#dc3545' : balance < 0 ? '#28a745' : '#8B4513';
+  
+  const txLabels = {
+    'sale': 'فاتورة بيع',
+    'payment': 'تحصيل',
+    'debt': 'مديونية',
+    'adjustment': 'تسوية'
+  };
+  const txClasses = {
+    'sale': 'tx-sale',
+    'payment': 'tx-payment',
+    'debt': 'tx-debt',
+    'adjustment': 'tx-adjustment'
+  };
+  
+  c.innerHTML = `
+    <div class="breadcrumb">
+      <a onclick="window.currentCustomerId=null;showPage('customers')">👥 العملاء</a>
+      <span>›</span><b>${cust.name}</b>
+    </div>
+    
+    <div class="balance-box" style="background:linear-gradient(135deg,${balanceColor},${balanceColor}dd)">
+      <div class="balance-label">الرصيد الحالي</div>
+      <div class="balance-value">${fmt(Math.abs(balance))}</div>
+      <div class="balance-type">${balanceType}</div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn btn-success" onclick="openCustomerAction('payment')">💵 تحصيل</button>
+      <button class="btn btn-danger" onclick="openCustomerAction('debt')">📝 إضافة مديونية</button>
+      <button class="btn btn-warning" onclick="openCustomerAction('adjustment')">⚖️ تسوية</button>
+    </div>
+    
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 كشف الحساب</h3>
+      ${txs.length === 0 ? '<div class="empty">لا توجد حركات بعد</div>' :
+        `<table>
+          <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead>
+          <tbody>
+            ${txs.map(t => {
+              const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
+              return `<tr>
+                <td>${t.trans_date||''}</td>
+                <td><span class="tx-type-badge ${txClasses[t.trans_type]||''}">${txLabels[t.trans_type]||t.trans_type}</span></td>
+                <td style="font-size:.8rem">${t.description||''}</td>
+                <td style="color:red">${isDebit ? fmt(t.amount) : ''}</td>
+                <td style="color:green">${!isDebit ? fmt(t.amount) : ''}</td>
+                <td><b>${fmt(t.balance_after||0)}</b></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`}
+    </div>
+    
+    <div class="modal" id="customerActionModal"><div class="modal-content">
+      <h2 id="caTitle">حركة</h2>
+      <input type="hidden" id="ca_type">
+      <div class="form-group"><label>التاريخ</label><input type="date" id="ca_date" value="${today()}"></div>
+      <div class="form-group"><label>المبلغ *</label><input type="number" id="ca_amount" placeholder="0"></div>
+      <div class="form-group"><label>البيان</label><input id="ca_desc" placeholder="مثال: تحصيل نقدي"></div>
+      <div style="background:#f9f9f9;padding:10px;border-radius:8px;font-size:.85rem;color:#666">
+        الرصيد قبل الحركة: <b>${fmt(balance)}</b>
+      </div>
+      <br>
+      <button class="btn btn-success" onclick="saveCustomerAction()">حفظ</button>
+      <button class="btn btn-secondary" onclick="closeModal('customerActionModal')">إلغاء</button>
+    </div></div>`;
+};
+
+window.openCustomerAction = function(type){
+  const cust = dbGet('customers', window.currentCustomerId);
+  if(!cust) return;
+  const titles = { 'payment': '💵 تحصيل من العميل', 'debt': '📝 إضافة مديونية', 'adjustment': '⚖️ تسوية رصيد' };
+  document.getElementById('caTitle').textContent = titles[type] || 'حركة';
+  document.getElementById('ca_type').value = type;
+  document.getElementById('ca_date').value = today();
+  document.getElementById('ca_amount').value = '';
+  document.getElementById('ca_desc').value = type === 'payment' ? 'تحصيل نقدي' : type === 'debt' ? 'مديونية جديدة' : 'تسوية رصيد';
+  openModal('customerActionModal');
+};
+
+window.saveCustomerAction = async function(){
+  const type = document.getElementById('ca_type').value;
+  const date = document.getElementById('ca_date').value;
+  const amount = +document.getElementById('ca_amount').value;
+  const desc = document.getElementById('ca_desc').value;
+  
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً صحيحاً'); return; }
+  
+  const cust = dbGet('customers', window.currentCustomerId);
+  if(!cust) return;
+  
+  showSync('☁️ جاري الحفظ...', 'syncing');
+  
+  const oldBalance = cust.current_balance || 0;
+  let newBalance = oldBalance;
+  let txAmount = amount;
+  
+  if(type === 'payment'){
+    newBalance = oldBalance - amount;
+  } else if(type === 'debt'){
+    newBalance = oldBalance + amount;
+  } else if(type === 'adjustment'){
+    // في التسوية: المبلغ هو الرصيد الجديد بالكامل
+    newBalance = amount;
+    txAmount = Math.abs(amount - oldBalance);
+  }
+  
+  await dbUpdate('customers', cust.id, { current_balance: newBalance });
+  await dbAdd('customer_transactions', {
+    customer_id: cust.id, customer_name: cust.name,
+    trans_date: date, trans_type: type,
+    amount: txAmount, description: desc,
+    balance_after: newBalance
+  });
+  
+  if(type === 'payment'){
+    await dbAdd('cash', {
+      trans_date: date, trans_type: 'in', amount: amount,
+      source: 'تحصيل عميل', reference: cust.name,
+      description: desc || `تحصيل من ${cust.name}`
+    });
+  } else if(type === 'debt' && amount > 0){
+    // لو إضافة مديونية نقدية (سلفة مثلاً) - مش لازم خزينة
+  }
+  
+  showSync('✅ تم الحفظ', 'ok');
+  closeModal('customerActionModal');
 };
 
 window.openCustomerModal = function(){
@@ -1408,11 +1469,7 @@ window.saveCustomer = async function(){
   const id = document.getElementById('cu_id').value;
   const name = document.getElementById('cu_name').value.trim();
   if(!name){ alert('الاسم مطلوب'); return; }
-  const data = {
-    name,
-    phone: document.getElementById('cu_phone').value,
-    address: document.getElementById('cu_addr').value
-  };
+  const data = { name, phone: document.getElementById('cu_phone').value, address: document.getElementById('cu_addr').value };
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('customers', id, data);
   else { data.current_balance = 0; await dbAdd('customers', data); }
@@ -1427,10 +1484,17 @@ window.delCustomer = async function(id){
   showSync('✅ تم الحذف', 'ok');
 };
 
-/* ============ الموردون ============ */
+/* ============ الموردون (معدّل - مع كشف حساب) ============ */
 window.render_suppliers = async function(c){
+  if(window.currentSupplierId) return renderSupplierStatement(c);
+  
   const items = dbGetAll('suppliers');
+  const totalDebt = items.reduce((a,x) => a + (x.current_balance||0), 0);
   c.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;text-align:center">
+      <div style="font-size:.85rem;opacity:.9">إجمالي المستحقات للموردين</div>
+      <div style="font-size:1.8rem;font-weight:bold;margin-top:5px">${fmt(totalDebt)}</div>
+    </div>
     <div class="card"><button class="btn btn-primary" onclick="openSupplierModal()">➕ مورد جديد</button></div>
     <div class="card">
       <table>
@@ -1438,9 +1502,13 @@ window.render_suppliers = async function(c){
         <tbody>
           ${items.length===0 ? '<tr><td colspan="4" class="empty">لا موردين</td></tr>' :
             items.map(x => `<tr>
-              <td>${x.name}</td><td>${x.phone||''}</td>
-              <td style="color:${(x.current_balance||0)>0?'red':'green'}">${fmt(x.current_balance)}</td>
+              <td><a href="javascript:void(0)" onclick="openSupplierStatement('${x.id}')" style="color:#8B4513;font-weight:bold;text-decoration:none">${x.name}</a></td>
+              <td>${x.phone||''}</td>
+              <td style="color:${(x.current_balance||0)>0?'red':(x.current_balance||0)<0?'green':'#666'};font-weight:bold">
+                ${fmt(x.current_balance)} ${(x.current_balance||0)>0?'(مستحق)':(x.current_balance||0)<0?'(مدفوع زيادة)':''}
+              </td>
               <td>
+                <button class="btn btn-info btn-sm" onclick="openSupplierStatement('${x.id}')">كشف</button>
                 <button class="btn btn-secondary btn-sm" onclick="editSupplier('${x.id}')">تعديل</button>
                 <button class="btn btn-danger btn-sm" onclick="delSupplier('${x.id}')">حذف</button>
               </td></tr>`).join('')}
@@ -1456,6 +1524,138 @@ window.render_suppliers = async function(c){
       <button class="btn btn-success" onclick="saveSupplier()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('supplierModal')">إلغاء</button>
     </div></div>`;
+};
+
+window.openSupplierStatement = function(id){
+  window.currentSupplierId = id;
+  showPage('suppliers');
+};
+
+window.renderSupplierStatement = async function(c){
+  const sup = dbGet('suppliers', window.currentSupplierId);
+  if(!sup){ window.currentSupplierId = null; return render_suppliers(c); }
+  
+  const txs = dbGetAll('supplier_transactions')
+    .filter(t => t.supplier_id === sup.id)
+    .sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+  
+  const balance = sup.current_balance || 0;
+  const balanceType = balance > 0 ? 'مستحق للمورد' : balance < 0 ? 'مدفوع زيادة' : 'متوازن';
+  const balanceColor = balance > 0 ? '#dc3545' : balance < 0 ? '#28a745' : '#8B4513';
+  
+  const txLabels = { 'purchase': 'فاتورة شراء', 'payment': 'دفعة', 'adjustment': 'تسوية' };
+  const txClasses = { 'purchase': 'tx-purchase', 'payment': 'tx-payment', 'adjustment': 'tx-adjustment' };
+  
+  c.innerHTML = `
+    <div class="breadcrumb">
+      <a onclick="window.currentSupplierId=null;showPage('suppliers')">🏭 الموردون</a>
+      <span>›</span><b>${sup.name}</b>
+    </div>
+    
+    <div class="balance-box" style="background:linear-gradient(135deg,${balanceColor},${balanceColor}dd)">
+      <div class="balance-label">الرصيد الحالي</div>
+      <div class="balance-value">${fmt(Math.abs(balance))}</div>
+      <div class="balance-type">${balanceType}</div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn btn-success" onclick="openSupplierAction('payment')">💵 دفعة للمورد</button>
+      <button class="btn btn-danger" onclick="openSupplierAction('purchase')">📝 إضافة مستحق</button>
+      <button class="btn btn-warning" onclick="openSupplierAction('adjustment')">⚖️ تسوية</button>
+    </div>
+    
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 كشف الحساب</h3>
+      ${txs.length === 0 ? '<div class="empty">لا توجد حركات بعد</div>' :
+        `<table>
+          <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead>
+          <tbody>
+            ${txs.map(t => {
+              const isDebit = t.trans_type === 'purchase';
+              return `<tr>
+                <td>${t.trans_date||''}</td>
+                <td><span class="tx-type-badge ${txClasses[t.trans_type]||''}">${txLabels[t.trans_type]||t.trans_type}</span></td>
+                <td style="font-size:.8rem">${t.description||''}</td>
+                <td style="color:red">${isDebit ? fmt(t.amount) : ''}</td>
+                <td style="color:green">${!isDebit ? fmt(t.amount) : ''}</td>
+                <td><b>${fmt(t.balance_after||0)}</b></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`}
+    </div>
+    
+    <div class="modal" id="supplierActionModal"><div class="modal-content">
+      <h2 id="saTitle">حركة</h2>
+      <input type="hidden" id="sa_type">
+      <div class="form-group"><label>التاريخ</label><input type="date" id="sad_date" value="${today()}"></div>
+      <div class="form-group"><label>المبلغ *</label><input type="number" id="sad_amount" placeholder="0"></div>
+      <div class="form-group"><label>البيان</label><input id="sad_desc"></div>
+      <div style="background:#f9f9f9;padding:10px;border-radius:8px;font-size:.85rem;color:#666">
+        الرصيد قبل الحركة: <b>${fmt(balance)}</b>
+      </div>
+      <br>
+      <button class="btn btn-success" onclick="saveSupplierAction()">حفظ</button>
+      <button class="btn btn-secondary" onclick="closeModal('supplierActionModal')">إلغاء</button>
+    </div></div>`;
+};
+
+window.openSupplierAction = function(type){
+  const sup = dbGet('suppliers', window.currentSupplierId);
+  if(!sup) return;
+  const titles = { 'payment': '💵 دفعة للمورد', 'purchase': '📝 إضافة مستحق', 'adjustment': '⚖️ تسوية رصيد' };
+  document.getElementById('saTitle').textContent = titles[type] || 'حركة';
+  document.getElementById('sa_type').value = type;
+  document.getElementById('sad_date').value = today();
+  document.getElementById('sad_amount').value = '';
+  document.getElementById('sad_desc').value = type === 'payment' ? 'دفعة للمورد' : type === 'purchase' ? 'مستحق جديد' : 'تسوية رصيد';
+  openModal('supplierActionModal');
+};
+
+window.saveSupplierAction = async function(){
+  const type = document.getElementById('sa_type').value;
+  const date = document.getElementById('sad_date').value;
+  const amount = +document.getElementById('sad_amount').value;
+  const desc = document.getElementById('sad_desc').value;
+  
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً صحيحاً'); return; }
+  
+  const sup = dbGet('suppliers', window.currentSupplierId);
+  if(!sup) return;
+  
+  showSync('☁️ جاري الحفظ...', 'syncing');
+  
+  const oldBalance = sup.current_balance || 0;
+  let newBalance = oldBalance;
+  let txAmount = amount;
+  
+  if(type === 'payment'){
+    newBalance = oldBalance - amount;
+  } else if(type === 'purchase'){
+    newBalance = oldBalance + amount;
+  } else if(type === 'adjustment'){
+    newBalance = amount;
+    txAmount = Math.abs(amount - oldBalance);
+  }
+  
+  await dbUpdate('suppliers', sup.id, { current_balance: newBalance });
+  await dbAdd('supplier_transactions', {
+    supplier_id: sup.id, supplier_name: sup.name,
+    trans_date: date, trans_type: type,
+    amount: txAmount, description: desc,
+    balance_after: newBalance
+  });
+  
+  if(type === 'payment'){
+    await dbAdd('cash', {
+      trans_date: date, trans_type: 'out', amount: amount,
+      source: 'دفعة مورد', reference: sup.name,
+      description: desc || `دفعة إلى ${sup.name}`
+    });
+  }
+  
+  showSync('✅ تم الحفظ', 'ok');
+  closeModal('supplierActionModal');
 };
 
 window.openSupplierModal = function(){
@@ -1478,11 +1678,7 @@ window.saveSupplier = async function(){
   const id = document.getElementById('su_id').value;
   const name = document.getElementById('su_name').value.trim();
   if(!name){ alert('الاسم مطلوب'); return; }
-  const data = {
-    name,
-    phone: document.getElementById('su_phone').value,
-    address: document.getElementById('su_addr').value
-  };
+  const data = { name, phone: document.getElementById('su_phone').value, address: document.getElementById('su_addr').value };
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('suppliers', id, data);
   else { data.current_balance = 0; await dbAdd('suppliers', data); }
@@ -1550,9 +1746,7 @@ window.saveCash = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   await dbAdd('cash', {
     trans_date: document.getElementById('ca_date').value,
-    trans_type: type,
-    amount,
-    source: 'يدوي',
+    trans_type: type, amount, source: 'يدوي',
     description: document.getElementById('ca_desc').value
   });
   showSync('✅ تم الحفظ', 'ok');
@@ -1630,19 +1824,15 @@ window.render_reports = async function(c){
   const netProfit = grossProfit - totalExp;
   const stockValue = products.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
   
-  // تقرير لكل فئة
   let catReport = '';
   for(const cat of categories){
     const catProducts = products.filter(p => p.category_id === cat.id);
     const catStock = catProducts.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
-    const catSales = sales.filter(s => (s.items||[]).some(i => catProducts.some(p => p.id === i.product_id)));
-    const catSalesVal = catSales.reduce((a,s) => a + (s.items||[]).filter(i => catProducts.some(p => p.id === i.product_id)).reduce((x,i) => x + i.total, 0), 0);
-    
+    const catSalesVal = sales.reduce((a,s) => a + (s.items||[]).filter(i => catProducts.some(p => p.id === i.product_id)).reduce((x,i) => x + i.total, 0), 0);
     catReport += `
       <div style="padding:8px 0;border-bottom:1px solid #eee;font-size:.85rem">
         <div style="display:flex;justify-content:space-between">
-          <b>🗂️ ${cat.name}</b>
-          <span>${catProducts.length} صنف</span>
+          <b>🗂️ ${cat.name}</b><span>${catProducts.length} صنف</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#666;margin-top:4px">
           <span>قيمة مخزون: ${fmt(catStock)}</span>
@@ -1660,12 +1850,10 @@ window.render_reports = async function(c){
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>إجمالي المصروفات</span><b style="color:red">${fmt(totalExp)}</b></div>
       <div style="padding:6px 0;display:flex;justify-content:space-between"><span><b>صافي الربح</b></span><b style="color:${netProfit>=0?'green':'red'};font-size:1.1rem">${fmt(netProfit)}</b></div>
     </div>
-    
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">🗂️ تقرير الفئات</h3>
       ${catReport || '<div class="empty">لا فئات</div>'}
     </div>
-    
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">📦 قيمة المخزون: ${fmt(stockValue)}</h3>
       <table>
@@ -1674,23 +1862,17 @@ window.render_reports = async function(c){
           ${products.length===0 ? '<tr><td colspan="3" class="empty">لا أصناف</td></tr>' :
             products.map(p => {
               const stock = renderStockDisplay(p);
-              return `<tr>
-                <td>${p.name}</td>
-                <td>${stock}</td>
-                <td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td>
-              </tr>`;
+              return `<tr><td>${p.name}</td><td>${stock}</td><td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td></tr>`;
             }).join('')}
         </tbody>
       </table>
     </div>
-    
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">👥 مديونيات العملاء</h3>
       ${customers.filter(x => (x.current_balance||0) > 0).length===0 ? '<div class="empty">لا مديونيات</div>' :
         customers.filter(x => (x.current_balance||0) > 0).map(x => `<div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
           <span>${x.name}</span><b style="color:red">${fmt(x.current_balance)}</b></div>`).join('')}
     </div>
-    
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">🏭 مستحقات الموردين</h3>
       ${suppliers.filter(x => (x.current_balance||0) > 0).length===0 ? '<div class="empty">لا مستحقات</div>' :
@@ -1709,15 +1891,14 @@ window.render_backup = async function(c){
     </div>
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">📤 استيراد</h3>
-      <p style="font-size:.9rem;color:#666;margin-bottom:10px">ارفع ملف JSON لإضافة بيانات جديدة إلى Firebase.</p>
       <input type="file" id="importFile" accept=".json" style="margin-bottom:10px">
       <button class="btn btn-success" onclick="importData()">⬆️ استيراد</button>
     </div>`;
 };
 
 window.exportData = async function(){
-  const data = { _meta: { exported_at: new Date().toISOString(), version: 2 } };
-  ['categories','products','customers','suppliers','purchases','sales','cash','expenses'].forEach(k => {
+  const data = { _meta: { exported_at: new Date().toISOString(), version: 3 } };
+  ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'].forEach(k => {
     data[k] = dbGetAll(k);
   });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1737,7 +1918,7 @@ window.importData = async function(){
   const data = JSON.parse(text);
   showSync('☁️ جاري الاستيراد...', 'syncing');
   let count = 0;
-  for(const k of ['categories','products','customers','suppliers','purchases','sales','cash','expenses']){
+  for(const k of ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses']){
     if(data[k] && Array.isArray(data[k])){
       for(const it of data[k]){
         const { id, ...rest } = it;
@@ -1751,4 +1932,4 @@ window.importData = async function(){
 };
 </script>
 </body>
-</html>
+  </html>
