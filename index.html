@@ -131,6 +131,8 @@ tr:hover{background:#f9f9f9}
 .danger-btn{background:#dc3545;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:.9rem;width:100%;margin-bottom:8px;text-align:right;font-weight:bold}
 .danger-btn:hover{background:#c82333}
 .danger-btn-final{background:#8B0000;color:#fff;border:2px solid #000;padding:15px;font-size:1rem}
+.danger-btn-fix{background:#28a745;color:#fff;border:2px solid #155724;padding:12px;font-size:.9rem}
+.danger-btn-fix:hover{background:#218838}
 @media print{
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
@@ -346,18 +348,29 @@ window.dbDelete = async function(colName, id){
 window.dbGetAll = function(colName){ return window.appData[colName] || []; };
 window.dbGet = function(colName, id){ return (window.appData[colName] || []).find(x => x.id === id); };
 
+// ترتيب بالتاريخ (الأحدث أول) + الوقت كعامل ثانوي
 window.sortByDateDesc = function(arr, field='invoice_date'){
   return arr.slice().sort((a,b) => {
-    const da = new Date(a[field] || 0);
-    const db2 = new Date(b[field] || 0);
-    return db2 - da;
+    const da = new Date(a[field] || 0).getTime();
+    const db2 = new Date(b[field] || 0).getTime();
+    if(db2 !== da) return db2 - da;
+    const ta = a.createdAt?.seconds || 0;
+    const tb = b.createdAt?.seconds || 0;
+    if(tb !== ta) return tb - ta;
+    return (b.createdAt?.nanoseconds || 0) - (a.createdAt?.nanoseconds || 0);
   });
 };
+
+// ترتيب بالتاريخ (الأقدم أول) + الوقت كعامل ثانوي
 window.sortByDateAsc = function(arr, field='trans_date'){
   return arr.slice().sort((a,b) => {
-    const da = new Date(a[field] || 0);
-    const db2 = new Date(b[field] || 0);
-    return da - db2;
+    const da = new Date(a[field] || 0).getTime();
+    const db2 = new Date(b[field] || 0).getTime();
+    if(da !== db2) return da - db2;
+    const ta = a.createdAt?.seconds || 0;
+    const tb = b.createdAt?.seconds || 0;
+    if(ta !== tb) return ta - tb;
+    return (a.createdAt?.nanoseconds || 0) - (b.createdAt?.nanoseconds || 0);
   });
 };
 
@@ -404,7 +417,6 @@ window.render_dashboard = async function(c){
   const supDebt = suppliers.reduce((a,x) => a + (x.current_balance||0), 0);
   const stockValue = products.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
 
-  // كروت الأصناف - مع تمييز الفئة
   let prodCards = '';
   if(products.length === 0){
     prodCards = '<div class="empty">لا أصناف بعد</div>';
@@ -430,7 +442,6 @@ window.render_dashboard = async function(c){
     }
   }
 
-  // آخر 5 مبيعات
   const last5Sales = sales.slice(0, 5);
   const salesRows = last5Sales.length === 0 ? '<div class="empty">لا مبيعات</div>' :
     last5Sales.map(s => `
@@ -442,7 +453,6 @@ window.render_dashboard = async function(c){
         <div class="inv-amount">${fmt(s.total_amount)}</div>
       </div>`).join('');
 
-  // آخر 5 مشتريات
   const last5Purch = purchases.slice(0, 5);
   const purchRows = last5Purch.length === 0 ? '<div class="empty">لا مشتريات</div>' :
     last5Purch.map(p => `
@@ -502,7 +512,7 @@ window.render_dashboard = async function(c){
 
     <div class="card">
       <h3 style="margin-bottom:10px;color:#8B4513">آخر الحركات النقدية</h3>
-      ${cash.slice(-10).reverse().map(x => `
+      ${sortByDateDesc(cash, 'trans_date').slice(0,10).map(x => `
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:.85rem">
           <span>${x.trans_date} - ${x.description||''}</span>
           <b style="color:${x.trans_type==='in'?'green':'red'}">${x.trans_type==='in'?'+':'-'}${fmt(x.amount)}</b>
@@ -944,18 +954,12 @@ window.saveQuickProduct = async function(){
       addPurchaseLineFromItem({ product_id: newId, quantity: '', unit_price: pp, total: 0 });
       const lines = document.querySelectorAll('.pu-line');
       const lastLine = lines[lines.length - 1];
-      if(lastLine){
-        const sel = lastLine.querySelector('.ln-p');
-        if(sel) sel.value = newId;
-      }
+      if(lastLine){ const sel = lastLine.querySelector('.ln-p'); if(sel) sel.value = newId; }
     } else if(source === 'sale'){
       addSaleLineFromItem({ product_id: newId, quantity: '', unit_price: sp, total: 0 });
       const lines = document.querySelectorAll('.sa-line');
       const lastLine = lines[lines.length - 1];
-      if(lastLine){
-        const sel = lastLine.querySelector('.ln-p');
-        if(sel) sel.value = newId;
-      }
+      if(lastLine){ const sel = lastLine.querySelector('.ln-p'); if(sel) sel.value = newId; }
     }
   }, 300);
 };
@@ -980,12 +984,10 @@ window.openPurchaseModal = async function(){
 window.openEditPurchase = async function(id){
   const p = dbGet('purchases', id);
   if(!p){ alert('الفاتورة غير موجودة'); return; }
-  
   window.editingPurchaseId = id;
   const suppliers = dbGetAll('suppliers');
   const sel = document.getElementById('pu_sup');
   sel.innerHTML = '<option value="">-- اختر --</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  
   document.getElementById('pu_title').textContent = '✏️ تعديل فاتورة شراء';
   document.getElementById('pu_no').value = p.invoice_no;
   document.getElementById('pu_sup').value = p.supplier_id;
@@ -993,12 +995,8 @@ window.openEditPurchase = async function(id){
   document.getElementById('pu_paid').value = p.paid_amount || 0;
   document.getElementById('pu_paid').dataset.auto = '0';
   document.getElementById('pu_lines').innerHTML = '';
-  
-  for(const it of (p.items || [])){
-    addPurchaseLineFromItem(it);
-  }
+  for(const it of (p.items || [])) addPurchaseLineFromItem(it);
   if(!p.items || p.items.length === 0) addPurchaseLine();
-  
   setTimeout(() => calcPurchaseTot(), 100);
   openModal('purchaseModal');
 };
@@ -1086,7 +1084,8 @@ window.fillPurchasePaid = function(){
   calcPurchaseRem();
 };
 
-async function reversePurchaseEffects(p){
+// ====== دالة مساعدة: ترجّع تأثير فاتورة شراء على المخزون ======
+async function reversePurchaseStock(p){
   for(const it of (p.items || [])){
     const prod = dbGet('products', it.product_id);
     if(!prod) continue;
@@ -1102,6 +1101,24 @@ async function reversePurchaseEffects(p){
       avg_cost: newAvg < 0 ? 0 : newAvg
     });
   }
+}
+
+// ====== دالة مساعدة: تحذف حركات الخزينة المرتبطة بفاتورة ======
+async function deleteLinkedCash(reference){
+  const linked = dbGetAll('cash').filter(c => 
+    c.reference === reference
+  );
+  for(const c of linked) await dbDelete('cash', c.id);
+  return linked.length;
+}
+
+// ====== دالة مساعدة: تحذف حركات المورد المرتبطة بفاتورة ======
+async function deleteLinkedSupplierTx(invoiceNo){
+  const linked = dbGetAll('supplier_transactions').filter(t => 
+    t.description && t.description.includes(invoiceNo)
+  );
+  for(const t of linked) await dbDelete('supplier_transactions', t.id);
+  return linked.length;
 }
 
 window.savePurchase = async function(){
@@ -1137,26 +1154,26 @@ window.savePurchase = async function(){
     });
   }
   
+  // ===== حالة التعديل =====
   if(window.editingPurchaseId){
     const oldPurch = dbGet('purchases', window.editingPurchaseId);
     if(!oldPurch){ alert('الفاتورة الأصلية غير موجودة'); return; }
     
-    await reversePurchaseEffects(oldPurch);
+    // 1. ارجع تأثير الفاتورة القديمة على المخزون
+    await reversePurchaseStock(oldPurch);
     
+    // 2. ارجع رصيد المورد
     const oldSup = dbGet('suppliers', oldPurch.supplier_id);
     if(oldSup){
       const newBal = (oldSup.current_balance||0) - (oldPurch.remaining||0);
       await dbUpdate('suppliers', oldSup.id, { current_balance: newBal });
     }
     
-    if(oldPurch.paid_amount > 0){
-      await dbAdd('cash', {
-        trans_date: d, trans_type: 'in', amount: oldPurch.paid_amount,
-        source: 'تعديل فاتورة', reference: oldPurch.invoice_no,
-        description: 'عكس دفعة فاتورة شراء ' + oldPurch.invoice_no
-      });
-    }
+    // 3. احذف حركات الخزينة والحركات المرتبطة بالفاتورة القديمة
+    await deleteLinkedCash(oldPurch.invoice_no);
+    await deleteLinkedSupplierTx(oldPurch.invoice_no);
     
+    // 4. طبّق الفاتورة الجديدة على المخزون
     for(const l of lines){
       const p = dbGet('products', l.product_id);
       if(!p) continue;
@@ -1171,21 +1188,24 @@ window.savePurchase = async function(){
       await dbUpdate('products', p.id, { current_stock: ns, avg_cost: newAvg, purchase_price: l.unit_price });
     }
     
+    // 5. طبّق رصيد المورد الجديد
     const supRef = dbGet('suppliers', sid);
     if(supRef){
       await dbUpdate('suppliers', sid, { current_balance: (supRef.current_balance||0) + rem });
       await dbAdd('supplier_transactions', {
         supplier_id: sid, supplier_name: supRef.name,
-        trans_date: d, trans_type: 'adjustment',
-        amount: total, description: `تعديل فاتورة شراء ${inv}`,
-        balance_after: (supRef.current_balance||0) + rem
+        trans_date: d, trans_type: 'purchase',
+        amount: total, description: `فاتورة شراء ${inv}`,
+        balance_after: (supRef.current_balance||0) + rem, reference: inv
       });
     }
     
+    // 6. سجّل حركة الخزينة الجديدة
     if(paid > 0){
       await dbAdd('cash', { trans_date: d, trans_type: 'out', amount: paid, source: 'مشتريات', reference: inv, description: 'دفعة شراء ' + inv });
     }
     
+    // 7. حدّث الفاتورة
     await dbUpdate('purchases', window.editingPurchaseId, {
       invoice_date: d, supplier_id: sid, supplier_name: supplier?.name || '',
       total_amount: total, paid_amount: paid, remaining: rem,
@@ -1198,6 +1218,7 @@ window.savePurchase = async function(){
     return;
   }
   
+  // ===== فاتورة جديدة =====
   await dbAdd('purchases', {
     invoice_no: inv, invoice_date: d, supplier_id: sid,
     supplier_name: supplier?.name || '',
@@ -1224,7 +1245,7 @@ window.savePurchase = async function(){
       supplier_id: sid, supplier_name: supplier.name,
       trans_date: d, trans_type: 'purchase',
       amount: total, description: `فاتورة شراء ${inv}`,
-      balance_after: (supplier.current_balance||0) + rem
+      balance_after: (supplier.current_balance||0) + rem, reference: inv
     });
   }
   
@@ -1236,11 +1257,36 @@ window.savePurchase = async function(){
   closeModal('purchaseModal');
 };
 
+// ====== حذف فاتورة شراء مع استرجاع كامل ======
 window.delPurchase = async function(id){
-  if(!confirm('حذف الفاتورة؟ (لن يتم استرجاع المخزون)')) return;
+  const p = dbGet('purchases', id);
+  if(!p){ alert('الفاتورة غير موجودة'); return; }
+  
+  if(!confirm(`حذف الفاتورة ${p.invoice_no}؟\nسيتم:\n- استرجاع المخزون\n- تعديل رصيد المورد\n- حذف حركات الخزينة`)) return;
+  
   showSync('☁️ جاري الحذف...', 'syncing');
+  
+  // 1. ارجع تأثير المخزون
+  await reversePurchaseStock(p);
+  
+  // 2. ارجع رصيد المورد
+  const sup = dbGet('suppliers', p.supplier_id);
+  if(sup){
+    await dbUpdate('suppliers', sup.id, {
+      current_balance: (sup.current_balance||0) - (p.remaining||0)
+    });
+  }
+  
+  // 3. احذف حركات الخزينة المرتبطة
+  await deleteLinkedCash(p.invoice_no);
+  
+  // 4. احذف حركات المورد المرتبطة
+  await deleteLinkedSupplierTx(p.invoice_no);
+  
+  // 5. احذف الفاتورة
   await dbDelete('purchases', id);
-  showSync('✅ تم الحذف', 'ok');
+  
+  showSync('✅ تم الحذف مع الاسترجاع', 'ok');
 };
 
 window.viewPurchase = function(id){
@@ -1382,12 +1428,10 @@ window.openSaleModal = async function(){
 window.openEditSale = async function(id){
   const s = dbGet('sales', id);
   if(!s){ alert('الفاتورة غير موجودة'); return; }
-  
   window.editingSaleId = id;
   const customers = dbGetAll('customers');
   const sel = document.getElementById('sa_cus');
   sel.innerHTML = '<option value="">-- اختر --</option>' + customers.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-  
   document.getElementById('sa_title').textContent = '✏️ تعديل فاتورة بيع';
   document.getElementById('sa_no').value = s.invoice_no;
   document.getElementById('sa_cus').value = s.customer_id;
@@ -1395,12 +1439,8 @@ window.openEditSale = async function(id){
   document.getElementById('sa_paid').value = s.paid_amount || 0;
   document.getElementById('sa_paid').dataset.auto = '0';
   document.getElementById('sa_lines').innerHTML = '';
-  
-  for(const it of (s.items || [])){
-    addSaleLineFromItem(it);
-  }
+  for(const it of (s.items || [])) addSaleLineFromItem(it);
   if(!s.items || s.items.length === 0) addSaleLine();
-  
   setTimeout(() => calcSaleTot(), 100);
   openModal('saleModal');
 };
@@ -1488,7 +1528,8 @@ window.fillSalePaid = function(){
   calcSaleRem();
 };
 
-async function reverseSaleEffects(s){
+// ====== دالة مساعدة: ترجّع تأثير فاتورة بيع على المخزون ======
+async function reverseSaleStock(s){
   for(const it of (s.items || [])){
     const prod = dbGet('products', it.product_id);
     if(!prod) continue;
@@ -1496,6 +1537,16 @@ async function reverseSaleEffects(s){
       current_stock: (prod.current_stock||0) + it.quantity
     });
   }
+}
+
+// ====== دالة مساعدة: تحذف حركات كشف حساب العميل المرتبطة ======
+async function deleteLinkedCustomerTx(invoiceNo){
+  const linked = dbGetAll('customer_transactions').filter(t => 
+    t.reference === invoiceNo || 
+    (t.description && t.description.includes(invoiceNo))
+  );
+  for(const t of linked) await dbDelete('customer_transactions', t.id);
+  return linked.length;
 }
 
 window.saveSale = async function(){
@@ -1512,6 +1563,7 @@ window.saveSale = async function(){
   });
   if(!lines.length){ alert('أضف أصنافاً'); return; }
   
+  // تحقق من الرصيد (مع إضافة الكميات القديمة لو تعديل)
   let oldQuantities = {};
   if(window.editingSaleId){
     const oldSale = dbGet('sales', window.editingSaleId);
@@ -1547,46 +1599,49 @@ window.saveSale = async function(){
   
   showSync('☁️ جاري الحفظ...', 'syncing');
   
+  // ===== حالة التعديل =====
   if(window.editingSaleId){
     const oldSale = dbGet('sales', window.editingSaleId);
     if(!oldSale){ alert('الفاتورة الأصلية غير موجودة'); return; }
     
-    await reverseSaleEffects(oldSale);
+    // 1. ارجع تأثير الفاتورة القديمة على المخزون
+    await reverseSaleStock(oldSale);
     
+    // 2. ارجع رصيد العميل
     const oldCust = dbGet('customers', oldSale.customer_id);
     if(oldCust){
       const newBal = (oldCust.current_balance||0) - (oldSale.remaining||0);
       await dbUpdate('customers', oldCust.id, { current_balance: newBal });
     }
     
-    if(oldSale.paid_amount > 0){
-      await dbAdd('cash', {
-        trans_date: d, trans_type: 'out', amount: oldSale.paid_amount,
-        source: 'تعديل فاتورة', reference: oldSale.invoice_no,
-        description: 'عكس تحصيل فاتورة بيع ' + oldSale.invoice_no
-      });
-    }
+    // 3. احذف حركات الخزينة وكشف الحساب القديمة
+    await deleteLinkedCash(oldSale.invoice_no);
+    await deleteLinkedCustomerTx(oldSale.invoice_no);
     
+    // 4. اخصم المخزون الجديد
     for(const l of lines){
       const p = dbGet('products', l.product_id);
       if(p) await dbUpdate('products', p.id, { current_stock: (p.current_stock||0) - l.quantity });
     }
     
+    // 5. طبّق رصيد العميل الجديد
     const custRef = dbGet('customers', cid);
     if(custRef){
       await dbUpdate('customers', cid, { current_balance: (custRef.current_balance||0) + rem });
       await dbAdd('customer_transactions', {
         customer_id: cid, customer_name: custRef.name,
-        trans_date: d, trans_type: 'adjustment',
-        amount: total, description: `تعديل فاتورة بيع ${inv}`,
+        trans_date: d, trans_type: 'sale',
+        amount: total, description: `فاتورة بيع ${inv}`,
         balance_after: (custRef.current_balance||0) + rem, reference: inv
       });
     }
     
+    // 6. سجّل حركة الخزينة الجديدة
     if(paid > 0){
       await dbAdd('cash', { trans_date: d, trans_type: 'in', amount: paid, source: 'مبيعات', reference: inv, description: 'تحصيل بيع ' + inv });
     }
     
+    // 7. حدّث الفاتورة
     await dbUpdate('sales', window.editingSaleId, {
       invoice_date: d, customer_id: cid, customer_name: customer?.name || '',
       total_amount: total, paid_amount: paid, remaining: rem,
@@ -1599,6 +1654,7 @@ window.saveSale = async function(){
     return;
   }
   
+  // ===== فاتورة جديدة =====
   await dbAdd('sales', {
     invoice_no: inv, invoice_date: d, customer_id: cid,
     customer_name: customer?.name || '',
@@ -1629,11 +1685,36 @@ window.saveSale = async function(){
   closeModal('saleModal');
 };
 
+// ====== حذف فاتورة بيع مع استرجاع كامل ======
 window.delSale = async function(id){
-  if(!confirm('حذف الفاتورة؟ (لن يتم استرجاع المخزون)')) return;
+  const s = dbGet('sales', id);
+  if(!s){ alert('الفاتورة غير موجودة'); return; }
+  
+  if(!confirm(`حذف الفاتورة ${s.invoice_no}؟\nسيتم:\n- استرجاع المخزون\n- تعديل رصيد العميل\n- حذف حركات الخزينة\n- حذف حركات كشف الحساب`)) return;
+  
   showSync('☁️ جاري الحذف...', 'syncing');
+  
+  // 1. ارجع تأثير المخزون
+  await reverseSaleStock(s);
+  
+  // 2. ارجع رصيد العميل
+  const cust = dbGet('customers', s.customer_id);
+  if(cust){
+    await dbUpdate('customers', cust.id, {
+      current_balance: (cust.current_balance||0) - (s.remaining||0)
+    });
+  }
+  
+  // 3. احذف حركات الخزينة
+  await deleteLinkedCash(s.invoice_no);
+  
+  // 4. احذف حركات كشف العميل
+  await deleteLinkedCustomerTx(s.invoice_no);
+  
+  // 5. احذف الفاتورة
   await dbDelete('sales', id);
-  showSync('✅ تم الحذف', 'ok');
+  
+  showSync('✅ تم الحذف مع الاسترجاع', 'ok');
 };
 
 window.viewSale = function(id){
@@ -1965,13 +2046,9 @@ window.deleteCustomerTx = async function(txId){
 window.recalcCustomerBalance = async function(custId){
   const cust = dbGet('customers', custId);
   if(!cust) return;
-  
   if(!confirm('إعادة حساب رصيد العميل من كل الحركات؟\nسيتم تصحيح الرصيد تلقائياً.')) return;
-  
   showSync('☁️ جاري إعادة الحساب...', 'syncing');
-  
   const txs = sortByDateAsc(dbGetAll('customer_transactions').filter(t => t.customer_id === custId), 'trans_date');
-  
   let balance = 0;
   for(const t of txs){
     const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
@@ -1979,9 +2056,7 @@ window.recalcCustomerBalance = async function(custId){
     else balance -= t.amount;
     await dbUpdate('customer_transactions', t.id, { balance_after: balance });
   }
-  
   await dbUpdate('customers', custId, { current_balance: balance });
-  
   showSync('✅ تم إعادة الحساب: ' + fmt(balance), 'ok');
   showPage('customers');
 };
@@ -2072,9 +2147,7 @@ window.openSupplierStatement = function(id){
 window.renderSupplierStatement = async function(c){
   const sup = dbGet('suppliers', window.currentSupplierId);
   if(!sup){ window.currentSupplierId = null; return render_suppliers(c); }
-  
   const txs = sortByDateAsc(dbGetAll('supplier_transactions').filter(t => t.supplier_id === sup.id), 'trans_date');
-  
   const balance = sup.current_balance || 0;
   const balanceType = balance > 0 ? 'مستحق للمورد' : balance < 0 ? 'مدفوع زيادة' : 'متوازن';
   const balanceColor = balance > 0 ? '#dc3545' : balance < 0 ? '#28a745' : '#8B4513';
@@ -2271,7 +2344,7 @@ window.render_cash = async function(c){
         <thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th></tr></thead>
         <tbody>
           ${items.length===0 ? '<tr><td colspan="4" class="empty">لا حركات</td></tr>' :
-            items.slice(0,50).map(x => `<tr>
+            items.slice(0,100).map(x => `<tr>
               <td>${x.trans_date}</td><td>${x.description||x.source||''}</td>
               <td style="color:green">${x.trans_type==='in'?fmt(x.amount):''}</td>
               <td style="color:red">${x.trans_type==='out'?fmt(x.amount):''}</td>
@@ -2441,6 +2514,83 @@ window.render_reports = async function(c){
     </div>`;
 };
 
+/* ============ دالة إعادة الحساب الشاملة ============ */
+window.recalcAll = async function(){
+  const answer = prompt('🔄 إعادة حساب شاملة\n\nسيتم:\n- إعادة بناء أرصدة المخزون من الفواتير\n- إعادة حساب أرصدة العملاء\n- إعادة حساب أرصدة الموردين\n\nاكتب YES للتأكيد:');
+  if(answer !== 'YES'){ alert('تم إلغاء العملية'); return; }
+  
+  if(!confirm('تأكيد أخير: إعادة حساب كل الأرصدة؟')) return;
+  
+  showSync('☁️ جاري إعادة الحساب...', 'syncing');
+  
+  // 1. صفّر أرصدة المخزون
+  const products = dbGetAll('products');
+  for(const p of products){
+    await dbUpdate('products', p.id, { current_stock: 0 });
+  }
+  
+  // 2. أضف المشتريات
+  const purchases = dbGetAll('purchases');
+  for(const purch of purchases){
+    for(const item of (purch.items || [])){
+      const prod = dbGet('products', item.product_id);
+      if(prod){
+        const factor = item.conversion_factor || prod.conversion_factor || 1;
+        const current = prod.current_stock || 0;
+        await dbUpdate('products', prod.id, {
+          current_stock: current + (item.quantity * factor)
+        });
+      }
+    }
+  }
+  
+  // 3. اخصم المبيعات
+  const sales = dbGetAll('sales');
+  for(const sale of sales){
+    for(const item of (sale.items || [])){
+      const prod = dbGet('products', item.product_id);
+      if(prod){
+        const current = prod.current_stock || 0;
+        await dbUpdate('products', prod.id, {
+          current_stock: current - item.quantity
+        });
+      }
+    }
+  }
+  
+  // 4. أعد حساب أرصدة العملاء
+  const customers = dbGetAll('customers');
+  for(const cust of customers){
+    const txs = sortByDateAsc(dbGetAll('customer_transactions').filter(t => t.customer_id === cust.id), 'trans_date');
+    let balance = 0;
+    for(const t of txs){
+      const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
+      if(isDebit) balance += t.amount;
+      else balance -= t.amount;
+      await dbUpdate('customer_transactions', t.id, { balance_after: balance });
+    }
+    await dbUpdate('customers', cust.id, { current_balance: balance });
+  }
+  
+  // 5. أعد حساب أرصدة الموردين
+  const suppliers = dbGetAll('suppliers');
+  for(const sup of suppliers){
+    const txs = sortByDateAsc(dbGetAll('supplier_transactions').filter(t => t.supplier_id === sup.id), 'trans_date');
+    let balance = 0;
+    for(const t of txs){
+      const isDebit = t.trans_type === 'purchase';
+      if(isDebit) balance += t.amount;
+      else balance -= t.amount;
+      await dbUpdate('supplier_transactions', t.id, { balance_after: balance });
+    }
+    await dbUpdate('suppliers', sup.id, { current_balance: balance });
+  }
+  
+  showSync('✅ تم إعادة الحساب الشاملة', 'ok');
+  alert('✅ تم إعادة حساب كل الأرصدة بنجاح');
+  showPage('reports');
+};
+
 /* ============ النسخ الاحتياطي + منطقة الخطر ============ */
 window.render_backup = async function(c){
   c.innerHTML = `
@@ -2453,6 +2603,12 @@ window.render_backup = async function(c){
       <h3 style="color:#8B4513;margin-bottom:10px">📤 استيراد</h3>
       <input type="file" id="importFile" accept=".json" style="margin-bottom:10px">
       <button class="btn btn-success" onclick="importData()">⬆️ استيراد</button>
+    </div>
+    
+    <div class="card" style="background:#e8f5e9;border:2px solid #28a745">
+      <h3 style="color:#28a745;margin-bottom:10px">🔧 إصلاح وصيانة</h3>
+      <p style="font-size:.85rem;color:#666;margin-bottom:15px">إعادة حساب الأرصدة من الفواتير (لإصلاح أي أخطاء في الأرصدة).</p>
+      <button class="btn btn-success" onclick="recalcAll()" style="width:100%;padding:12px;font-weight:bold">🔄 إعادة حساب شاملة</button>
     </div>
     
     <div class="card danger-zone">
@@ -2508,7 +2664,7 @@ window.render_backup = async function(c){
 };
 
 window.exportData = async function(){
-  const data = { _meta: { exported_at: new Date().toISOString(), version: 6 } };
+  const data = { _meta: { exported_at: new Date().toISOString(), version: 7 } };
   ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'].forEach(k => {
     data[k] = dbGetAll(k);
   });
@@ -2542,6 +2698,7 @@ window.importData = async function(){
   alert('تم استيراد ' + count + ' سجل بنجاح');
 };
 
+// ====== حذف حسب النوع مع استرجاع كامل ======
 window.dangerDelete = async function(colName){
   const colNames = {
     'purchases': 'المشتريات',
@@ -2563,18 +2720,92 @@ window.dangerDelete = async function(colName){
   const answer = prompt(`⚠️ حذف كل ${label} (${count} عنصر)\n\nهذه العملية لا يمكن التراجع عنها!\n\nاكتب DELETE للتأكيد:`);
   if(answer !== 'DELETE'){ alert('تم إلغاء العملية'); return; }
   
-  if(!confirm(`تأكيد أخير: حذف كل ${label}؟`)) return;
+  // تحذير إضافي للفواتير
+  if(colName === 'sales'){
+    if(!confirm('⚠️ سيتم استرجاع المخزون وتعديل أرصدة العملاء تلقائياً.\n\nمتأكد؟')) return;
+  }
+  if(colName === 'purchases'){
+    if(!confirm('⚠️ سيتم خصم المخزون وتعديل أرصدة الموردين تلقائياً.\n\nمتأكد؟')) return;
+  }
   
   showSync(`☁️ جاري حذف ${label}...`, 'syncing');
   
   const items = dbGetAll(colName);
   let deleted = 0;
-  for(const it of items){
-    try {
-      await dbDelete(colName, it.id);
+  
+  // ====== معالجة خاصة للمبيعات ======
+  if(colName === 'sales'){
+    for(const sale of items){
+      // 1. رجّع المخزون
+      for(const item of (sale.items || [])){
+        const prod = dbGet('products', item.product_id);
+        if(prod){
+          await dbUpdate('products', prod.id, {
+            current_stock: (prod.current_stock||0) + item.quantity
+          });
+        }
+      }
+      // 2. عدّل رصيد العميل
+      const cust = dbGet('customers', sale.customer_id);
+      if(cust){
+        await dbUpdate('customers', cust.id, {
+          current_balance: (cust.current_balance||0) - (sale.remaining||0)
+        });
+      }
+      // 3. احذف حركات الخزينة المرتبطة
+      const linkedCash = dbGetAll('cash').filter(c => c.reference === sale.invoice_no);
+      for(const c of linkedCash) await dbDelete('cash', c.id);
+      // 4. احذف حركات كشف العميل
+      const linkedTx = dbGetAll('customer_transactions').filter(t => 
+        t.reference === sale.invoice_no
+      );
+      for(const t of linkedTx) await dbDelete('customer_transactions', t.id);
+      // 5. احذف الفاتورة
+      await dbDelete('sales', sale.id);
       deleted++;
-    } catch(e){
-      console.error('Failed to delete:', it.id, e);
+    }
+  }
+  // ====== معالجة خاصة للمشتريات ======
+  else if(colName === 'purchases'){
+    for(const purch of items){
+      // 1. اخصم المخزون
+      for(const item of (purch.items || [])){
+        const prod = dbGet('products', item.product_id);
+        if(prod){
+          await dbUpdate('products', prod.id, {
+            current_stock: (prod.current_stock||0) - item.quantity
+          });
+        }
+      }
+      // 2. عدّل رصيد المورد
+      const sup = dbGet('suppliers', purch.supplier_id);
+      if(sup){
+        await dbUpdate('suppliers', sup.id, {
+          current_balance: (sup.current_balance||0) - (purch.remaining||0)
+        });
+      }
+      // 3. احذف حركات الخزينة
+      const linkedCash = dbGetAll('cash').filter(c => c.reference === purch.invoice_no);
+      for(const c of linkedCash) await dbDelete('cash', c.id);
+      // 4. احذف حركات المورد
+      const linkedTx = dbGetAll('supplier_transactions').filter(t => 
+        t.reference === purch.invoice_no
+      );
+      for(const t of linkedTx) await dbDelete('supplier_transactions', t.id);
+      // 5. احذف الفاتورة
+      await dbDelete('purchases', purch.id);
+      deleted++;
+    }
+  }
+  // ====== حذف عادي ======
+  else {
+    for(const it of items){
+      try {
+        await dbDelete(colName, it.id);
+        deleted++;
+      } catch(e){
+        console.error('Failed to delete:', it.id, e);
+      }
     }
   }
   
@@ -2583,6 +2814,7 @@ window.dangerDelete = async function(colName){
   showPage('backup');
 };
 
+// ====== حذف كل البيانات ======
 window.dangerDeleteAll = async function(){
   const answer = prompt('💥💥💥 حذف كل البيانات نهائياً 💥💥💥\n\nسيتم حذف:\n- الفئات\n- الأصناف\n- العملاء\n- الموردين\n- كل الفواتير\n- كل الحركات\n- الخزينة\n- المصروفات\n\nاكتب DELETE ALL للتأكيد:');
   
