@@ -110,17 +110,7 @@ tr:hover{background:#f9f9f9}
 .tx-debt{background:#f8d7da;color:#721c24}
 .tx-adjustment{background:#fff3cd;color:#856404}
 .tx-purchase{background:#e2e3e5;color:#383d41}
-.tx-journal{background:#e7e0f5;color:#4a2c8a}
 .edit-badge{background:#ffe5b4;color:#8B4513;padding:2px 8px;border-radius:4px;font-size:.7rem;display:inline-block;margin-top:4px}
-.dash-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
-.dash-product-card{background:linear-gradient(135deg,#fff9f0,#fff);border:2px solid #f0e0d0;border-radius:10px;padding:12px}
-.dash-product-card .dp-category{font-size:.7rem;color:#8B4513;background:#fff3e0;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:8px;font-weight:bold;border:1px solid #ffe0b2}
-.dash-product-card .dp-name{font-weight:bold;color:#333;font-size:.9rem;margin-bottom:8px;border-bottom:1px solid #f0e0d0;padding-bottom:5px}
-.dash-product-card .dp-row{display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;color:#555}
-.dash-product-card .dp-row b{color:#333}
-.dash-product-card .dp-footer{background:#8B4513;color:#fff;padding:5px 8px;border-radius:6px;text-align:center;font-weight:bold;font-size:.8rem;margin-top:8px}
-.dash-product-card .dp-stock-zero{color:#dc3545}
-.dash-product-card .dp-stock-low{color:#ffc107}
 .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #8B4513}
 .section-title h3{color:#8B4513;font-size:.95rem}
 .section-title a{color:#8B4513;font-size:.8rem;cursor:pointer;text-decoration:none}
@@ -135,9 +125,6 @@ tr:hover{background:#f9f9f9}
 .danger-btn{background:#dc3545;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:.9rem;width:100%;margin-bottom:8px;text-align:right;font-weight:bold}
 .danger-btn:hover{background:#c82333}
 .danger-btn-final{background:#8B0000;color:#fff;border:2px solid #000;padding:15px;font-size:1rem}
-.danger-btn-fix{background:#28a745;color:#fff;border:2px solid #155724;padding:12px;font-size:.9rem}
-.danger-btn-fix:hover{background:#218838}
-/* Journal / Ledger */
 .journal-entry{background:#fff;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 5px rgba(0,0,0,.05);overflow:hidden}
 .journal-entry .je-header{background:#8B4513;color:#fff;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-size:.85rem}
 .journal-entry .je-header .je-num{font-weight:bold}
@@ -152,7 +139,6 @@ tr:hover{background:#f9f9f9}
 .balance-check{text-align:center;padding:8px;border-radius:6px;font-size:.8rem;font-weight:bold;margin-top:8px}
 .balance-check.ok{background:#d4edda;color:#155724}
 .balance-check.bad{background:#f8d7da;color:#721c24}
-/* Accounts tree */
 .account-item{padding:8px 10px;border-bottom:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between}
 .account-item:last-child{border-bottom:none}
 .account-item .acc-code{color:#8B4513;font-weight:bold;margin-left:8px}
@@ -175,7 +161,6 @@ tr:hover{background:#f9f9f9}
   .line .line-total{grid-area:t}
   .line button{grid-area:t;justify-self:end;margin-top:2px}
   .action-buttons{grid-template-columns:1fr}
-  .dash-product-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .actions-cell .btn{padding:5px 6px;font-size:.75rem;min-width:30px}
   .main-nav button{padding:5px 8px;font-size:.72rem}
   .main-nav{gap:3px;padding:4px}
@@ -234,7 +219,7 @@ tr:hover{background:#f9f9f9}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { 
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, 
-  onSnapshot, query, serverTimestamp, getDocs, writeBatch
+  onSnapshot, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { 
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -261,7 +246,7 @@ window.closeModal = id => document.getElementById(id).classList.remove('active')
 const UNITS = ['لوح','كرتونة','كيس','كيلو','متر','متر مربع','قطعة','طقم','دستة','باكو'];
 window.UNITS = UNITS;
 
-// ===== شجرة الحسابات الثابتة =====
+// ===== شجرة الحسابات =====
 const ACCOUNTS = {
   '1010': { name: 'الخزينة', type: 'asset', nature: 'debit' },
   '1020': { name: 'المخزون', type: 'asset', nature: 'debit' },
@@ -408,12 +393,18 @@ window.sortByDateAsc = function(arr, field='date'){
   });
 };
 
-window.genInvoiceNo = function(prefix, colName, field='invoice_no'){
+// ===== توليد رقم الفاتورة (نسخة محسّنة) =====
+window.genInvoiceNo = function(prefix, colName, field='reference'){
   const items = window.appData[colName] || [];
   let max = 0;
+  const regex = new RegExp('^' + prefix + '-(\\d{1,6})$');
   items.forEach(i => {
-    const m = (i[field] || '').match(/(\d+)$/);
-    if(m) max = Math.max(max, +m[1]);
+    const val = String(i[field] || '');
+    const m = val.match(regex);
+    if(m){
+      const num = +m[1];
+      if(num > max) max = num;
+    }
   });
   return `${prefix}-${String(max+1).padStart(4,'0')}`;
 };
@@ -435,16 +426,9 @@ window.showPage = async function(name, btn){
 };
 
 /* ============ المحرك المحاسبي ============ */
-/**
- * إنشاء قيد محاسبي في دفتر اليومية
- * @param {Object} opts - { date, reference, description, lines }
- * lines: [{ account_code, account_name, debit, credit, description }]
- * @returns {Object} - { entry_id, balanced }
- */
 window.createJournalEntry = async function(opts){
   const { date, reference, description, lines } = opts;
   
-  // التحقق من التوازن
   const totalDebit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
   const totalCredit = lines.reduce((a, l) => a + (+l.credit || 0), 0);
   const balanced = Math.abs(totalDebit - totalCredit) < 0.01;
@@ -453,7 +437,6 @@ window.createJournalEntry = async function(opts){
     throw new Error(`القيد غير متوازن: مدين=${fmt(totalDebit)} دائن=${fmt(totalCredit)}`);
   }
   
-  // إنشاء القيد
   const entryId = await dbAdd('journal_entries', {
     date, reference, description,
     total_debit: totalDebit,
@@ -461,7 +444,6 @@ window.createJournalEntry = async function(opts){
     is_balanced: balanced
   });
   
-  // إضافة السطور
   for(const line of lines){
     await dbAdd('journal_lines', {
       entry_id: entryId,
@@ -478,10 +460,6 @@ window.createJournalEntry = async function(opts){
   return { entry_id: entryId, balanced, total_debit: totalDebit, total_credit: totalCredit };
 };
 
-/**
- * عكس قيد (Reverse Entry) - يستخدم للحذف والتعديل
- * ينشئ قيداً جديداً بقلب المدين والدائن
- */
 window.reverseJournalEntry = async function(entryId, reason='عكس قيد'){
   const entry = dbGet('journal_entries', entryId);
   if(!entry) throw new Error('القيد غير موجود');
@@ -497,15 +475,12 @@ window.reverseJournalEntry = async function(entryId, reason='عكس قيد'){
   
   return await createJournalEntry({
     date: today(),
-    reference: `عكس ${entry.reference}`,
+    reference: `REV-${entry.reference}`,
     description: `${reason} للقيد ${entry.reference}`,
     lines: reversedLines
   });
 };
 
-/**
- * حساب رصيد حساب معين
- */
 window.getAccountBalance = function(accountCode){
   const lines = dbGetAll('journal_lines').filter(l => l.account_code === accountCode);
   const totalDebit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
@@ -531,9 +506,6 @@ window.getAccountBalance = function(accountCode){
   };
 };
 
-/**
- * حساب رصيد كل الحسابات
- */
 window.getAllAccountBalances = function(){
   const result = {};
   for(const code in ACCOUNTS){
@@ -542,9 +514,6 @@ window.getAllAccountBalances = function(){
   return result;
 };
 
-/**
- * التحقق من توازن ميزان المراجعة
- */
 window.checkTrialBalance = function(){
   const balances = getAllAccountBalances();
   let totalDebit = 0, totalCredit = 0;
@@ -982,7 +951,6 @@ window.savePurchase = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    // 1. إنشاء القيد المحاسبي
     const journalLines = [
       { account_code: '1020', debit: total, credit: 0, description: `شراء بضاعة ${inv}` }
     ];
@@ -993,14 +961,13 @@ window.savePurchase = async function(){
       journalLines.push({ account_code: '2010', debit: 0, credit: rem, description: `مستحق للمورد ${supplier?.name||''}` });
     }
     
-    const entry = await createJournalEntry({
+    await createJournalEntry({
       date: d,
       reference: inv,
       description: `فاتورة شراء من ${supplier?.name||''}`,
       lines: journalLines
     });
     
-    // 2. تحديث المخزون
     for(const l of lines){
       const p = dbGet('products', l.product_id);
       if(p){
@@ -1017,7 +984,6 @@ window.savePurchase = async function(){
       }
     }
     
-    // 3. تسجيل حركة الخزينة (لو فيه مدفوع)
     if(paid > 0){
       await dbAdd('cash', {
         date: d,
@@ -1192,7 +1158,6 @@ window.saveSale = async function(){
   });
   if(!lines.length){ alert('أضف أصنافاً'); return; }
   
-  // تحقق من الرصيد
   for(const l of lines){
     const p = dbGet('products', l.product_id);
     if(!p || (p.current_stock||0) < l.quantity){
@@ -1208,7 +1173,6 @@ window.saveSale = async function(){
   const inv = document.getElementById('sa_no').value;
   const customer = dbGet('customers', cid);
   
-  // حساب تكلفة البضاعة المباعة
   let cogs = 0;
   for(const l of lines){
     const p = dbGet('products', l.product_id);
@@ -1218,32 +1182,24 @@ window.saveSale = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    // 1. إنشاء القيد المحاسبي
     const journalLines = [];
-    
-    // مدين: الخزينة (لو فيه مدفوع)
     if(paid > 0){
       journalLines.push({ account_code: '1010', debit: paid, credit: 0, description: `تحصيل نقدي ${inv}` });
     }
-    // مدين: العملاء (لو فيه متبقي)
     if(rem > 0){
       journalLines.push({ account_code: '1030', debit: rem, credit: 0, description: `مديونية ${customer?.name||''}` });
     }
-    // دائن: المبيعات
     journalLines.push({ account_code: '4010', debit: 0, credit: total, description: `مبيعات ${inv}` });
-    // مدين: تكلفة المبيعات
     journalLines.push({ account_code: '5010', debit: cogs, credit: 0, description: `تكلفة مبيعات ${inv}` });
-    // دائن: المخزون
     journalLines.push({ account_code: '1020', debit: 0, credit: cogs, description: `خروج مخزون ${inv}` });
     
-    const entry = await createJournalEntry({
+    await createJournalEntry({
       date: d,
       reference: inv,
       description: `فاتورة بيع للعميل ${customer?.name||''}`,
       lines: journalLines
     });
     
-    // 2. خصم المخزون
     for(const l of lines){
       const p = dbGet('products', l.product_id);
       if(p){
@@ -1253,7 +1209,6 @@ window.saveSale = async function(){
       }
     }
     
-    // 3. تسجيل حركة الخزينة
     if(paid > 0){
       await dbAdd('cash', {
         date: d,
@@ -1377,12 +1332,9 @@ window.renderCustomerStatement = async function(c){
   const cust = dbGet('customers', window.currentCustomerId);
   if(!cust){ window.currentCustomerId = null; return render_customers(c); }
   
-  // كل القيود اللي فيها العميل
   const allLines = dbGetAll('journal_lines').filter(l => 
     l.description && l.description.includes(cust.name)
   );
-  
-  // الرصيد من الحساب
   const custBalance = getCustomerBalance(cust.name);
   
   c.innerHTML = `
@@ -1457,12 +1409,10 @@ window.saveCustomerAction = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    const ref = `ADJ-${Date.now()}`;
+    const ref = genInvoiceNo('ADJ', 'journal_entries', 'reference');
     let lines = [];
     
     if(type === 'payment'){
-      // مدين: الخزينة (فلوس دخلت)
-      // دائن: العملاء (قل الدين)
       lines = [
         { account_code: '1010', debit: amount, credit: 0, description: `تحصيل من ${cust.name}` },
         { account_code: '1030', debit: 0, credit: amount, description: `${cust.name} - تحصيل` }
@@ -1472,7 +1422,6 @@ window.saveCustomerAction = async function(){
         description: desc || `تحصيل من ${cust.name}`
       });
     } else if(type === 'adjustment'){
-      // تسوية: تعديل الرصيد
       const oldBalance = getCustomerBalance(cust.name);
       const diff = amount - oldBalance;
       if(diff === 0){ alert('الرصيد لم يتغير'); return; }
@@ -1663,12 +1612,10 @@ window.saveSupplierAction = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    const ref = `ADJ-${Date.now()}`;
+    const ref = genInvoiceNo('ADJ', 'journal_entries', 'reference');
     let lines = [];
     
     if(type === 'payment'){
-      // مدين: الموردون (قل الالتزام)
-      // دائن: الخزينة (فلوس خرجت)
       lines = [
         { account_code: '2010', debit: amount, credit: 0, description: `${sup.name} - دفعة` },
         { account_code: '1010', debit: 0, credit: amount, description: `دفعة إلى ${sup.name}` }
@@ -1797,7 +1744,7 @@ window.saveCash = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    const ref = `CASH-${Date.now()}`;
+    const ref = genInvoiceNo('CASH', 'journal_entries', 'reference');
     const lines = [];
     if(type === 'in'){
       lines.push({ account_code: '1010', debit: amount, credit: 0, description: desc || 'وارد نقدي' });
@@ -1808,7 +1755,7 @@ window.saveCash = async function(){
     }
     
     await createJournalEntry({ date, reference: ref, description: desc, lines });
-    await dbAdd('cash', { date, type, amount, source: 'يدوي', description: desc });
+    await dbAdd('cash', { date, type, amount, source: 'يدوي', description: desc, reference: ref });
     
     showSync('✅ تم الحفظ', 'ok');
     closeModal('cashModal');
@@ -1869,15 +1816,15 @@ window.saveExpense = async function(){
   showSync('☁️ جاري الحفظ...', 'syncing');
   
   try {
-    const ref = `EXP-${Date.now()}`;
+    const ref = genInvoiceNo('EXP', 'journal_entries', 'reference');
     const lines = [
       { account_code: '5020', debit: amount, credit: 0, description: `مصروف ${cat}` },
       { account_code: '1010', debit: 0, credit: amount, description: `دفع مصروف ${cat}` }
     ];
     
     await createJournalEntry({ date, reference: ref, description: `مصروف ${cat}: ${desc}`, lines });
-    await dbAdd('expenses', { date, category: cat, amount, description: desc });
-    await dbAdd('cash', { date, type: 'out', amount, source: 'مصروف', description: cat });
+    await dbAdd('expenses', { date, category: cat, amount, description: desc, reference: ref });
+    await dbAdd('cash', { date, type: 'out', amount, source: 'مصروف', description: cat, reference: ref });
     
     showSync('✅ تم الحفظ', 'ok');
     closeModal('expenseModal');
@@ -1933,11 +1880,11 @@ window.filterJournal = function(q){
 
 /* ============ دفتر الأستاذ ============ */
 window.render_ledger = async function(c){
-  const balances = getAllAccountBalances();
-  
   if(window.currentLedgerAccount){
     return renderLedgerDetail(c);
   }
+  
+  const balances = getAllAccountBalances();
   
   c.innerHTML = `
     <div class="card">
@@ -1976,8 +1923,6 @@ window.renderLedgerDetail = async function(c){
   const lines = sortByDateAsc(dbGetAll('journal_lines').filter(l => l.account_code === code), 'date');
   const balanceInfo = getAccountBalance(code);
   
-  let runningBalance = 0;
-  
   c.innerHTML = `
     <div class="breadcrumb">
       <a onclick="window.currentLedgerAccount=null;showPage('ledger')">📚 دفتر الأستاذ</a>
@@ -1991,28 +1936,25 @@ window.renderLedgerDetail = async function(c){
     </div>
     
     <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">📋 الحركات</h3>
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 الحركات (${lines.length})</h3>
       ${lines.length === 0 ? '<div class="empty">لا حركات</div>' :
         `<table>
           <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead>
           <tbody>
-            ${lines.map(l => {
-              runningBalance += (account.nature === 'debit') 
-                ? ((+l.debit || 0) - (+l.credit || 0))
-                : ((+l.credit || 0) - (+l.debit || 0));
-              return `<tr>
-                <td>${l.date||''}</td>
-                <td style="font-size:.8rem">${l.description||''}</td>
-                <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
-                <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
-              </tr>`;
-            }).join('')}
+            ${lines.map(l => `<tr>
+              <td>${l.date||''}</td>
+              <td style="font-size:.8rem">${l.description||''}</td>
+              <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
+              <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
+            </tr>`).join('')}
           </tbody>
         </table>`}
     </div>
     
     <div class="card" style="text-align:center">
-      <b>الرصيد النهائي: ${fmt(balanceInfo.balance)}</b>
+      <b>إجمالي مدين: ${fmt(balanceInfo.debit)}</b><br>
+      <b>إجمالي دائن: ${fmt(balanceInfo.credit)}</b><br>
+      <b style="font-size:1.1rem;color:#8B4513">الرصيد: ${fmt(balanceInfo.balance)}</b>
     </div>`;
 };
 
@@ -2021,6 +1963,13 @@ window.render_reports = async function(c){
   const products = dbGetAll('products');
   const balances = getAllAccountBalances();
   const trial = checkTrialBalance();
+  
+  const grossProfit = balances['4010'].balance - balances['5010'].balance;
+  const netProfit = grossProfit - balances['5020'].balance;
+  
+  const totalAssets = balances['1010'].balance + balances['1020'].balance + balances['1030'].balance;
+  const totalLiabilities = balances['2010'].balance;
+  const totalEquity = balances['3010'].balance + netProfit;
   
   c.innerHTML = `
     <div class="card" style="background:${trial.balanced?'#d4edda':'#f8d7da'};color:${trial.balanced?'#155724':'#721c24'};text-align:center">
@@ -2057,21 +2006,20 @@ window.render_reports = async function(c){
         <span>تكلفة البضاعة المباعة</span><b style="color:red">${fmt(balances['5010'].balance)}</b>
       </div>
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
-        <span><b>الربح الإجمالي</b></span><b style="color:green">${fmt(balances['4010'].balance - balances['5010'].balance)}</b>
+        <span><b>الربح الإجمالي</b></span><b style="color:green">${fmt(grossProfit)}</b>
       </div>
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
         <span>المصروفات</span><b style="color:red">${fmt(balances['5020'].balance)}</b>
       </div>
       <div style="padding:8px 0;display:flex;justify-content:space-between;font-size:1.1rem">
-        <span><b>صافي الربح</b></span><b style="color:${(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance) >= 0 ? 'green' : 'red'}">
-          ${fmt(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance)}
-        </b>
+        <span><b>صافي الربح</b></span>
+        <b style="color:${netProfit >= 0 ? 'green' : 'red'}">${fmt(netProfit)}</b>
       </div>
     </div>
     
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">📈 الميزانية العمومية</h3>
-      <div style="font-weight:bold;margin:5px 0">الأصول:</div>
+      <div style="font-weight:bold;margin:5px 0;color:#28a745">الأصول:</div>
       <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
         <span>الخزينة</span><b>${fmt(balances['1010'].balance)}</b>
       </div>
@@ -2083,28 +2031,27 @@ window.render_reports = async function(c){
       </div>
       <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
         <span>إجمالي الأصول</span>
-        <span>${fmt(balances['1010'].balance + balances['1020'].balance + balances['1030'].balance)}</span>
+        <span>${fmt(totalAssets)}</span>
       </div>
       
-      <div style="font-weight:bold;margin:15px 0 5px">الالتزامات:</div>
+      <div style="font-weight:bold;margin:15px 0 5px;color:#dc3545">الالتزامات:</div>
       <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
-        <span>الموردون</span><b>${fmt(balances['2010'].balance)}</b>
+        <span>الموردون</span><b>${fmt(totalLiabilities)}</b>
       </div>
       <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
-        <span>إجمالي الالتزامات</span><span>${fmt(balances['2010'].balance)}</span>
+        <span>إجمالي الالتزامات</span><span>${fmt(totalLiabilities)}</span>
       </div>
       
-      <div style="font-weight:bold;margin:15px 0 5px">حقوق الملكية:</div>
+      <div style="font-weight:bold;margin:15px 0 5px;color:#ffc107">حقوق الملكية:</div>
       <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
         <span>رأس المال</span><b>${fmt(balances['3010'].balance)}</b>
       </div>
       <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
-        <span>الأرباح المحتجزة</span>
-        <b>${fmt(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance)}</b>
+        <span>الأرباح المحتجزة</span><b>${fmt(netProfit)}</b>
       </div>
       <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
         <span>إجمالي حقوق الملكية</span>
-        <span>${fmt(balances['3010'].balance + (balances['4010'].balance - balances['5010'].balance - balances['5020'].balance))}</span>
+        <span>${fmt(totalEquity)}</span>
       </div>
     </div>
     
@@ -2113,11 +2060,12 @@ window.render_reports = async function(c){
       <table>
         <thead><tr><th>الصنف</th><th>الرصيد</th><th>القيمة</th></tr></thead>
         <tbody>
-          ${products.map(p => `<tr>
-            <td>${p.name}</td>
-            <td>${fmt(p.current_stock||0)} ${p.unit_sell}</td>
-            <td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td>
-          </tr>`).join('') || '<tr><td colspan="3" class="empty">لا أصناف</td></tr>'}
+          ${products.length === 0 ? '<tr><td colspan="3" class="empty">لا أصناف</td></tr>' :
+            products.map(p => `<tr>
+              <td>${p.name}</td>
+              <td>${fmt(p.current_stock||0)} ${p.unit_sell||''}</td>
+              <td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td>
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
@@ -2128,6 +2076,7 @@ window.render_backup = async function(c){
   c.innerHTML = `
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">💾 نسخ احتياطي</h3>
+      <p style="font-size:.9rem;color:#666;margin-bottom:10px">حمّل ملف JSON به كل بياناتك.</p>
       <button class="btn btn-primary" onclick="exportData()">⬇️ تصدير البيانات</button>
     </div>
     
@@ -2151,6 +2100,10 @@ window.render_backup = async function(c){
       
       <button class="danger-btn" onclick="dangerDelete('journal_entries')">
         🗑️ حذف كل القيود (${dbGetAll('journal_entries').length} قيد)
+      </button>
+      
+      <button class="danger-btn" onclick="dangerDelete('journal_lines')">
+        🗑️ حذف كل سطور القيود (${dbGetAll('journal_lines').length} سطر)
       </button>
       
       <button class="danger-btn" onclick="dangerDelete('cash')">
@@ -2186,7 +2139,7 @@ window.render_backup = async function(c){
 };
 
 window.exportData = async function(){
-  const data = { _meta: { exported_at: new Date().toISOString(), version: 8 } };
+  const data = { _meta: { exported_at: new Date().toISOString(), version: 9 } };
   ['categories','products','customers','suppliers','journal_entries','journal_lines','cash','expenses'].forEach(k => {
     data[k] = dbGetAll(k);
   });
@@ -2220,9 +2173,9 @@ window.importData = async function(){
   alert('تم استيراد ' + count + ' سجل');
 };
 
-/* ============ الفحص والإصلاح الشامل ============ */
+/* ============ فحص وإصلاح ============ */
 window.verifyAndFixAll = async function(){
-  if(!confirm('سيتم:\n- فحص كل القيود\n- التأكد من التوازن\n- إعادة حساب أرصدة الأصناف\n\nمتابعة؟')) return;
+  if(!confirm('سيتم:\n- فحص كل القيود\n- التأكد من التوازن\n- عرض تقرير\n\nمتابعة؟')) return;
   
   showSync('☁️ جاري الفحص...', 'syncing');
   
@@ -2230,7 +2183,6 @@ window.verifyAndFixAll = async function(){
   const lines = dbGetAll('journal_lines');
   let problems = [];
   
-  // 1. فحص توازن كل قيد
   for(const e of entries){
     const entryLines = lines.filter(l => l.entry_id === e.id);
     const debit = entryLines.reduce((a, l) => a + (+l.debit || 0), 0);
@@ -2240,20 +2192,8 @@ window.verifyAndFixAll = async function(){
     }
   }
   
-  // 2. إعادة حساب مخزون كل صنف
-  const products = dbGetAll('products');
-  for(const p of products){
-    let stock = 0;
-    // نضيف من المشتريات
-    for(const e of entries){
-      if(e.reference && e.reference.startsWith('PUR')){
-        const line = lines.find(l => l.entry_id === e.id && l.account_code === '1020' && l.debit > 0);
-        // مش دقيق — نستخدم حركات products
-      }
-    }
-  }
+  const trial = checkTrialBalance();
   
-  // 3. تقرير
   let msg = '📋 نتائج الفحص:\n\n';
   msg += `عدد القيود: ${entries.length}\n`;
   msg += `عدد السطور: ${lines.length}\n\n`;
@@ -2264,7 +2204,6 @@ window.verifyAndFixAll = async function(){
     msg += `⚠️ مشاكل (${problems.length}):\n` + problems.slice(0, 10).join('\n') + '\n\n';
   }
   
-  const trial = checkTrialBalance();
   msg += `ميزان المراجعة: ${trial.balanced ? '✅ متوازن' : '❌ غير متوازن'}\n`;
   msg += `مدين: ${fmt(trial.totalDebit)}\n`;
   msg += `دائن: ${fmt(trial.totalCredit)}\n`;
@@ -2277,6 +2216,7 @@ window.verifyAndFixAll = async function(){
 window.dangerDelete = async function(colName){
   const labels = {
     'journal_entries': 'القيود',
+    'journal_lines': 'سطور القيود',
     'cash': 'حركات الخزينة',
     'customers': 'العملاء',
     'suppliers': 'الموردين',
