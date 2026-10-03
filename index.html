@@ -28,8 +28,8 @@ header{background:#8B4513;color:#fff;padding:12px 15px;display:flex;justify-cont
 header h1{font-size:1rem}
 .user-info{font-size:.75rem;opacity:.9;display:block;margin-top:2px}
 .btn-logout{background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:.85rem}
-.main-nav{display:flex;overflow-x:auto;background:#fff;padding:5px;gap:5px;border-bottom:1px solid #ddd;position:sticky;top:52px;z-index:99}
-.main-nav button{padding:8px 12px;border:none;background:#f0f0f0;border-radius:6px;white-space:nowrap;cursor:pointer;font-size:.85rem}
+.main-nav{display:flex;flex-wrap:wrap;background:#fff;padding:5px;gap:4px;border-bottom:1px solid #ddd;position:sticky;top:52px;z-index:99;justify-content:center}
+.main-nav button{padding:6px 10px;border:none;background:#f0f0f0;border-radius:6px;white-space:nowrap;cursor:pointer;font-size:.78rem;flex:0 0 auto}
 .main-nav button.active{background:#8B4513;color:#fff}
 main{padding:15px;padding-bottom:90px}
 .card{background:#fff;padding:15px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 5px rgba(0,0,0,.05)}
@@ -50,7 +50,6 @@ tr:hover{background:#f9f9f9}
 .btn-info{background:#17a2b8;color:#fff}
 .btn-warning{background:#ffc107;color:#333}
 .btn-sm{padding:4px 8px;font-size:.75rem}
-/* أزرار الجداول المدمجة */
 .actions-cell{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 .actions-cell .btn{padding:6px 8px;font-size:.8rem;min-width:36px;text-align:center}
 .form-group{margin-bottom:12px}
@@ -109,16 +108,15 @@ tr:hover{background:#f9f9f9}
 .tx-adjustment{background:#fff3cd;color:#856404}
 .tx-purchase{background:#e2e3e5;color:#383d41}
 .edit-badge{background:#ffe5b4;color:#8B4513;padding:2px 8px;border-radius:4px;font-size:.7rem;display:inline-block;margin-top:4px}
-/* كروت الأصناف في الرئيسية */
 .dash-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
 .dash-product-card{background:linear-gradient(135deg,#fff9f0,#fff);border:2px solid #f0e0d0;border-radius:10px;padding:12px}
-.dash-product-card .dp-name{font-weight:bold;color:#8B4513;font-size:.9rem;margin-bottom:8px;border-bottom:1px solid #f0e0d0;padding-bottom:5px}
+.dash-product-card .dp-category{font-size:.7rem;color:#8B4513;background:#fff3e0;padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:8px;font-weight:bold;border:1px solid #ffe0b2}
+.dash-product-card .dp-name{font-weight:bold;color:#333;font-size:.9rem;margin-bottom:8px;border-bottom:1px solid #f0e0d0;padding-bottom:5px}
 .dash-product-card .dp-row{display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;color:#555}
 .dash-product-card .dp-row b{color:#333}
 .dash-product-card .dp-footer{background:#8B4513;color:#fff;padding:5px 8px;border-radius:6px;text-align:center;font-weight:bold;font-size:.8rem;margin-top:8px}
 .dash-product-card .dp-stock-zero{color:#dc3545}
 .dash-product-card .dp-stock-low{color:#ffc107}
-/* قسم الفواتير في الرئيسية */
 .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #8B4513}
 .section-title h3{color:#8B4513;font-size:.95rem}
 .section-title a{color:#8B4513;font-size:.8rem;cursor:pointer;text-decoration:none}
@@ -128,7 +126,6 @@ tr:hover{background:#f9f9f9}
 .invoice-row .inv-no{color:#8B4513;font-weight:bold}
 .invoice-row .inv-info{color:#666;font-size:.75rem}
 .invoice-row .inv-amount{font-weight:bold;color:#333}
-/* منطقة الخطر */
 .danger-zone{border:2px solid #dc3545;background:#fff5f5}
 .danger-zone h3{color:#dc3545;margin-bottom:10px}
 .danger-btn{background:#dc3545;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:.9rem;width:100%;margin-bottom:8px;text-align:right;font-weight:bold}
@@ -152,6 +149,8 @@ tr:hover{background:#f9f9f9}
   .action-buttons{grid-template-columns:1fr}
   .dash-product-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .actions-cell .btn{padding:5px 6px;font-size:.75rem;min-width:30px}
+  .main-nav button{padding:5px 8px;font-size:.72rem}
+  .main-nav{gap:3px;padding:4px}
 }
 </style>
 </head>
@@ -253,7 +252,6 @@ function showSync(text, type='syncing'){
 }
 window.showSync = showSync;
 
-/* ============ تسجيل الدخول ============ */
 window.doLogin = async function(){
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
@@ -348,7 +346,6 @@ window.dbDelete = async function(colName, id){
 window.dbGetAll = function(colName){ return window.appData[colName] || []; };
 window.dbGet = function(colName, id){ return (window.appData[colName] || []).find(x => x.id === id); };
 
-// ترتيب حسب التاريخ
 window.sortByDateDesc = function(arr, field='invoice_date'){
   return arr.slice().sort((a,b) => {
     const da = new Date(a[field] || 0);
@@ -407,7 +404,7 @@ window.render_dashboard = async function(c){
   const supDebt = suppliers.reduce((a,x) => a + (x.current_balance||0), 0);
   const stockValue = products.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
 
-  // كروت الأصناف
+  // كروت الأصناف - مع تمييز الفئة
   let prodCards = '';
   if(products.length === 0){
     prodCards = '<div class="empty">لا أصناف بعد</div>';
@@ -419,8 +416,11 @@ window.render_dashboard = async function(c){
       purchases.forEach(pu => (pu.items||[]).forEach(i => { if(i.product_id===p.id) boughtQty += i.quantity; }));
       const stockVal = (p.current_stock||0) * (p.avg_cost||0);
       const stockClass = (p.current_stock||0) <= 0 ? 'dp-stock-zero' : ((p.current_stock||0) < 5 ? 'dp-stock-low' : '');
+      const cat = dbGet('categories', p.category_id);
+      const catName = cat ? cat.name : 'بدون فئة';
       prodCards += `
         <div class="dash-product-card">
+          <div class="dp-category">🗂️ ${catName}</div>
           <div class="dp-name">${p.name}</div>
           <div class="dp-row"><span>مُشترى:</span><b>${fmt(boughtQty)} ${p.unit_buy||''}</b></div>
           <div class="dp-row"><span>مُباع:</span><b>${fmt(soldQty)} ${p.unit_sell||''}</b></div>
@@ -853,7 +853,6 @@ window.saveQuickSupplier = async function(){
   setTimeout(() => openPurchaseModal(), 300);
 };
 
-/* ============ نافذة إضافة صنف سريع (تستخدم في الشراء والبيع) ============ */
 function renderQuickProductModal(){
   return `<div class="modal" id="quickProductModal"><div class="modal-content">
     <h2>➕ صنف جديد سريع</h2>
@@ -940,11 +939,9 @@ window.saveQuickProduct = async function(){
   showSync('✅ تم الحفظ', 'ok');
   closeModal('quickProductModal');
   
-  // أضف الصنف تلقائياً للفاتورة
   setTimeout(() => {
     if(source === 'purchase'){
       addPurchaseLineFromItem({ product_id: newId, quantity: '', unit_price: pp, total: 0 });
-      // اختر الصنف الجديد في آخر سطر
       const lines = document.querySelectorAll('.pu-line');
       const lastLine = lines[lines.length - 1];
       if(lastLine){
@@ -963,7 +960,6 @@ window.saveQuickProduct = async function(){
   }, 300);
 };
 
-/* ============ باقي المشتريات ============ */
 window.openPurchaseModal = async function(){
   window.editingPurchaseId = null;
   const suppliers = dbGetAll('suppliers');
@@ -1348,7 +1344,8 @@ window.render_sales = async function(c){
       <div class="form-group"><label>الهاتف</label><input id="qc_phone"></div>
       <button class="btn btn-success" onclick="saveQuickCustomer()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('quickCustomerModal')">إلغاء</button>
-    </div></div>`;
+    </div></div>
+    ${renderQuickProductModal()}`;
 };
 
 window.openQuickCustomer = function(){
@@ -1922,18 +1919,16 @@ window.saveCustomerAction = async function(){
   closeModal('customerActionModal');
 };
 
-/* حذف حركة عميل */
 window.deleteCustomerTx = async function(txId){
   const tx = dbGet('customer_transactions', txId);
   if(!tx){ alert('الحركة غير موجودة'); return; }
-  if(!confirm(`حذف الحركة "${tx.description}" بمبلغ ${fmt(tx.amount)}؟\nسيتم عكس تأثيرها على رصيد العميل`)) return;
+  if(!confirm(`حذف الحركة "${tx.description}" بمبلغ ${fmt(tx.amount)}؟`)) return;
   
   const cust = dbGet('customers', tx.customer_id);
   if(!cust){ alert('العميل غير موجود'); return; }
   
   showSync('☁️ جاري الحذف...', 'syncing');
   
-  // اعكس تأثير الحركة على الرصيد
   let newBalance = cust.current_balance || 0;
   const isDebit = tx.trans_type === 'sale' || tx.trans_type === 'debt';
   if(isDebit) newBalance -= tx.amount;
@@ -1942,10 +1937,8 @@ window.deleteCustomerTx = async function(txId){
   await dbUpdate('customers', cust.id, { current_balance: newBalance });
   await dbDelete('customer_transactions', txId);
   
-  // لو حركة payment، اعكس تأثيرها على الخزينة
   if(tx.trans_type === 'payment'){
     if(confirm('هل تريد عكس حركة الخزينة المرتبطة أيضاً؟')) {
-      // ابحث عن حركة الخزينة المرتبطة
       const cashTxs = dbGetAll('cash');
       const linkedCash = cashTxs.find(ct => 
         ct.source === 'تحصيل عميل' && 
@@ -1956,7 +1949,6 @@ window.deleteCustomerTx = async function(txId){
       if(linkedCash) {
         await dbDelete('cash', linkedCash.id);
       } else {
-        // اعكسها بحركة جديدة
         await dbAdd('cash', {
           trans_date: tx.trans_date, trans_type: 'out', amount: tx.amount,
           source: 'حذف حركة', reference: cust.name,
@@ -1970,7 +1962,6 @@ window.deleteCustomerTx = async function(txId){
   showPage('customers');
 };
 
-/* إعادة حساب رصيد العميل */
 window.recalcCustomerBalance = async function(custId){
   const cust = dbGet('customers', custId);
   if(!cust) return;
@@ -1986,8 +1977,6 @@ window.recalcCustomerBalance = async function(custId){
     const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
     if(isDebit) balance += t.amount;
     else balance -= t.amount;
-    
-    // حدّث balance_after
     await dbUpdate('customer_transactions', t.id, { balance_after: balance });
   }
   
@@ -2198,20 +2187,15 @@ window.deleteSupplierTx = async function(txId){
   const tx = dbGet('supplier_transactions', txId);
   if(!tx){ alert('الحركة غير موجودة'); return; }
   if(!confirm(`حذف الحركة "${tx.description}" بمبلغ ${fmt(tx.amount)}؟`)) return;
-  
   const sup = dbGet('suppliers', tx.supplier_id);
   if(!sup){ alert('المورد غير موجود'); return; }
-  
   showSync('☁️ جاري الحذف...', 'syncing');
-  
   let newBalance = sup.current_balance || 0;
   const isDebit = tx.trans_type === 'purchase';
   if(isDebit) newBalance -= tx.amount;
   else newBalance += tx.amount;
-  
   await dbUpdate('suppliers', sup.id, { current_balance: newBalance });
   await dbDelete('supplier_transactions', txId);
-  
   showSync('✅ تم الحذف', 'ok');
   showPage('suppliers');
 };
@@ -2524,7 +2508,7 @@ window.render_backup = async function(c){
 };
 
 window.exportData = async function(){
-  const data = { _meta: { exported_at: new Date().toISOString(), version: 5 } };
+  const data = { _meta: { exported_at: new Date().toISOString(), version: 6 } };
   ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'].forEach(k => {
     data[k] = dbGetAll(k);
   });
@@ -2558,7 +2542,6 @@ window.importData = async function(){
   alert('تم استيراد ' + count + ' سجل بنجاح');
 };
 
-/* ============ منطقة الخطر ============ */
 window.dangerDelete = async function(colName){
   const colNames = {
     'purchases': 'المشتريات',
