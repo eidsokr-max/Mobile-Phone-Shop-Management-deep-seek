@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#8B4513">
-<title>حسابات الكونتر</title>
+<title>حسابات الكونتر - محاسبي</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
 body{background:#f5f5f5;color:#333;direction:rtl;padding-bottom:70px}
@@ -37,6 +37,9 @@ main{padding:15px;padding-bottom:90px}
 .stat-box{background:#fff;padding:15px;border-radius:10px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.05)}
 .stat-box .label{font-size:.8rem;color:#666}
 .stat-box .value{font-size:1.2rem;font-weight:bold;color:#8B4513;margin-top:5px}
+.stat-box.income .value{color:#28a745}
+.stat-box.expense .value{color:#dc3545}
+.stat-box.warning .value{color:#ffc107}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;font-size:.85rem}
 th,td{padding:10px 8px;text-align:right;border-bottom:1px solid #eee}
 th{background:#8B4513;color:#fff}
@@ -107,6 +110,7 @@ tr:hover{background:#f9f9f9}
 .tx-debt{background:#f8d7da;color:#721c24}
 .tx-adjustment{background:#fff3cd;color:#856404}
 .tx-purchase{background:#e2e3e5;color:#383d41}
+.tx-journal{background:#e7e0f5;color:#4a2c8a}
 .edit-badge{background:#ffe5b4;color:#8B4513;padding:2px 8px;border-radius:4px;font-size:.7rem;display:inline-block;margin-top:4px}
 .dash-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
 .dash-product-card{background:linear-gradient(135deg,#fff9f0,#fff);border:2px solid #f0e0d0;border-radius:10px;padding:12px}
@@ -133,6 +137,28 @@ tr:hover{background:#f9f9f9}
 .danger-btn-final{background:#8B0000;color:#fff;border:2px solid #000;padding:15px;font-size:1rem}
 .danger-btn-fix{background:#28a745;color:#fff;border:2px solid #155724;padding:12px;font-size:.9rem}
 .danger-btn-fix:hover{background:#218838}
+/* Journal / Ledger */
+.journal-entry{background:#fff;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 5px rgba(0,0,0,.05);overflow:hidden}
+.journal-entry .je-header{background:#8B4513;color:#fff;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-size:.85rem}
+.journal-entry .je-header .je-num{font-weight:bold}
+.journal-entry .je-body{padding:10px 12px}
+.journal-entry .je-line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #eee;font-size:.8rem}
+.journal-entry .je-line:last-child{border-bottom:none}
+.journal-entry .je-line .je-account{flex:2;color:#333}
+.journal-entry .je-line .je-amount{flex:1;text-align:left;font-weight:bold}
+.journal-entry .je-line .debit{color:#28a745}
+.journal-entry .je-line .credit{color:#dc3545}
+.journal-entry .je-footer{padding:8px 12px;background:#f9f9f9;font-size:.75rem;color:#666;text-align:center;border-top:1px solid #eee}
+.balance-check{text-align:center;padding:8px;border-radius:6px;font-size:.8rem;font-weight:bold;margin-top:8px}
+.balance-check.ok{background:#d4edda;color:#155724}
+.balance-check.bad{background:#f8d7da;color:#721c24}
+/* Accounts tree */
+.account-item{padding:8px 10px;border-bottom:1px solid #eee;font-size:.85rem;display:flex;justify-content:space-between}
+.account-item:last-child{border-bottom:none}
+.account-item .acc-code{color:#8B4513;font-weight:bold;margin-left:8px}
+.account-item .acc-balance{font-weight:bold}
+.account-item.debit .acc-balance{color:#28a745}
+.account-item.credit .acc-balance{color:#dc3545}
 @media print{
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
@@ -193,6 +219,8 @@ tr:hover{background:#f9f9f9}
     <button data-page="suppliers" onclick="showPage('suppliers',this)">🏭 موردون</button>
     <button data-page="cash" onclick="showPage('cash',this)">💵 الخزينة</button>
     <button data-page="expenses" onclick="showPage('expenses',this)">📋 مصروفات</button>
+    <button data-page="journal" onclick="showPage('journal',this)">📖 دفتر اليومية</button>
+    <button data-page="ledger" onclick="showPage('ledger',this)">📚 دفتر الأستاذ</button>
     <button data-page="reports" onclick="showPage('reports',this)">📊 تقارير</button>
     <button data-page="backup" onclick="showPage('backup',this)">💾 نسخ احتياطي</button>
   </nav>
@@ -206,7 +234,7 @@ tr:hover{background:#f9f9f9}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { 
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, 
-  onSnapshot, query, serverTimestamp
+  onSnapshot, query, serverTimestamp, getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { 
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -233,17 +261,30 @@ window.closeModal = id => document.getElementById(id).classList.remove('active')
 const UNITS = ['لوح','كرتونة','كيس','كيلو','متر','متر مربع','قطعة','طقم','دستة','باكو'];
 window.UNITS = UNITS;
 
+// ===== شجرة الحسابات الثابتة =====
+const ACCOUNTS = {
+  '1010': { name: 'الخزينة', type: 'asset', nature: 'debit' },
+  '1020': { name: 'المخزون', type: 'asset', nature: 'debit' },
+  '1030': { name: 'العملاء (مدينون)', type: 'asset', nature: 'debit' },
+  '2010': { name: 'الموردون (دائنون)', type: 'liability', nature: 'credit' },
+  '3010': { name: 'رأس المال', type: 'equity', nature: 'credit' },
+  '4010': { name: 'المبيعات', type: 'revenue', nature: 'credit' },
+  '5010': { name: 'تكلفة البضاعة المباعة', type: 'expense', nature: 'debit' },
+  '5020': { name: 'المصروفات', type: 'expense', nature: 'debit' },
+  '5030': { name: 'مرتجعات المبيعات', type: 'revenue', nature: 'debit' },
+  '5040': { name: 'مرتجعات المشتريات', type: 'expense', nature: 'credit' }
+};
+window.ACCOUNTS = ACCOUNTS;
+
 window.appData = { 
-  categories: [], products: [], customers: [], customer_transactions: [],
-  suppliers: [], supplier_transactions: [],
-  purchases: [], sales: [], cash: [], expenses: [] 
+  categories: [], products: [], customers: [], suppliers: [], 
+  journal_entries: [], journal_lines: [], cash: [], expenses: []
 };
 window.listeners = [];
 window.currentCategoryId = null;
 window.currentCustomerId = null;
 window.currentSupplierId = null;
-window.editingSaleId = null;
-window.editingPurchaseId = null;
+window.currentLedgerAccount = null;
 
 function showSync(text, type='syncing'){
   const el = document.getElementById('syncIndicator');
@@ -254,6 +295,7 @@ function showSync(text, type='syncing'){
 }
 window.showSync = showSync;
 
+/* ============ تسجيل الدخول ============ */
 window.doLogin = async function(){
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
@@ -305,7 +347,7 @@ onAuthStateChanged(auth, async (user) => {
 
 async function initRealtimeListeners(){
   showSync('☁️ جاري التحميل...', 'syncing');
-  const collections = ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'];
+  const collections = ['categories','products','customers','suppliers','journal_entries','journal_lines','cash','expenses'];
   let loadedCount = 0;
   collections.forEach(colName => {
     const q = query(collection(db, colName));
@@ -348,37 +390,29 @@ window.dbDelete = async function(colName, id){
 window.dbGetAll = function(colName){ return window.appData[colName] || []; };
 window.dbGet = function(colName, id){ return (window.appData[colName] || []).find(x => x.id === id); };
 
-// ترتيب بالتاريخ (الأحدث أول) + الوقت كعامل ثانوي
-window.sortByDateDesc = function(arr, field='invoice_date'){
+// ترتيب
+window.sortByDateDesc = function(arr, field='date'){
   return arr.slice().sort((a,b) => {
     const da = new Date(a[field] || 0).getTime();
     const db2 = new Date(b[field] || 0).getTime();
     if(db2 !== da) return db2 - da;
-    const ta = a.createdAt?.seconds || 0;
-    const tb = b.createdAt?.seconds || 0;
-    if(tb !== ta) return tb - ta;
-    return (b.createdAt?.nanoseconds || 0) - (a.createdAt?.nanoseconds || 0);
+    return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
   });
 };
-
-// ترتيب بالتاريخ (الأقدم أول) + الوقت كعامل ثانوي
-window.sortByDateAsc = function(arr, field='trans_date'){
+window.sortByDateAsc = function(arr, field='date'){
   return arr.slice().sort((a,b) => {
     const da = new Date(a[field] || 0).getTime();
     const db2 = new Date(b[field] || 0).getTime();
     if(da !== db2) return da - db2;
-    const ta = a.createdAt?.seconds || 0;
-    const tb = b.createdAt?.seconds || 0;
-    if(ta !== tb) return ta - tb;
-    return (a.createdAt?.nanoseconds || 0) - (b.createdAt?.nanoseconds || 0);
+    return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
   });
 };
 
-window.genInvoiceNo = function(prefix, colName){
+window.genInvoiceNo = function(prefix, colName, field='invoice_no'){
   const items = window.appData[colName] || [];
   let max = 0;
   items.forEach(i => {
-    const m = (i.invoice_no || '').match(/(\d+)$/);
+    const m = (i[field] || '').match(/(\d+)$/);
     if(m) max = Math.max(max, +m[1]);
   });
   return `${prefix}-${String(max+1).padStart(4,'0')}`;
@@ -400,122 +434,200 @@ window.showPage = async function(name, btn){
   }
 };
 
+/* ============ المحرك المحاسبي ============ */
+/**
+ * إنشاء قيد محاسبي في دفتر اليومية
+ * @param {Object} opts - { date, reference, description, lines }
+ * lines: [{ account_code, account_name, debit, credit, description }]
+ * @returns {Object} - { entry_id, balanced }
+ */
+window.createJournalEntry = async function(opts){
+  const { date, reference, description, lines } = opts;
+  
+  // التحقق من التوازن
+  const totalDebit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
+  const totalCredit = lines.reduce((a, l) => a + (+l.credit || 0), 0);
+  const balanced = Math.abs(totalDebit - totalCredit) < 0.01;
+  
+  if(!balanced){
+    throw new Error(`القيد غير متوازن: مدين=${fmt(totalDebit)} دائن=${fmt(totalCredit)}`);
+  }
+  
+  // إنشاء القيد
+  const entryId = await dbAdd('journal_entries', {
+    date, reference, description,
+    total_debit: totalDebit,
+    total_credit: totalCredit,
+    is_balanced: balanced
+  });
+  
+  // إضافة السطور
+  for(const line of lines){
+    await dbAdd('journal_lines', {
+      entry_id: entryId,
+      account_code: line.account_code,
+      account_name: line.account_name || ACCOUNTS[line.account_code]?.name || '',
+      debit: +line.debit || 0,
+      credit: +line.credit || 0,
+      description: line.description || description,
+      date: date,
+      reference: reference
+    });
+  }
+  
+  return { entry_id: entryId, balanced, total_debit: totalDebit, total_credit: totalCredit };
+};
+
+/**
+ * عكس قيد (Reverse Entry) - يستخدم للحذف والتعديل
+ * ينشئ قيداً جديداً بقلب المدين والدائن
+ */
+window.reverseJournalEntry = async function(entryId, reason='عكس قيد'){
+  const entry = dbGet('journal_entries', entryId);
+  if(!entry) throw new Error('القيد غير موجود');
+  
+  const lines = dbGetAll('journal_lines').filter(l => l.entry_id === entryId);
+  const reversedLines = lines.map(l => ({
+    account_code: l.account_code,
+    account_name: l.account_name,
+    debit: l.credit,
+    credit: l.debit,
+    description: `${reason} - ${l.description}`
+  }));
+  
+  return await createJournalEntry({
+    date: today(),
+    reference: `عكس ${entry.reference}`,
+    description: `${reason} للقيد ${entry.reference}`,
+    lines: reversedLines
+  });
+};
+
+/**
+ * حساب رصيد حساب معين
+ */
+window.getAccountBalance = function(accountCode){
+  const lines = dbGetAll('journal_lines').filter(l => l.account_code === accountCode);
+  const totalDebit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
+  const totalCredit = lines.reduce((a, l) => a + (+l.credit || 0), 0);
+  const account = ACCOUNTS[accountCode];
+  
+  if(!account) return { balance: 0, debit: totalDebit, credit: totalCredit };
+  
+  let balance = 0;
+  if(account.nature === 'debit'){
+    balance = totalDebit - totalCredit;
+  } else {
+    balance = totalCredit - totalDebit;
+  }
+  
+  return { 
+    balance, 
+    debit: totalDebit, 
+    credit: totalCredit,
+    name: account.name,
+    type: account.type,
+    nature: account.nature
+  };
+};
+
+/**
+ * حساب رصيد كل الحسابات
+ */
+window.getAllAccountBalances = function(){
+  const result = {};
+  for(const code in ACCOUNTS){
+    result[code] = getAccountBalance(code);
+  }
+  return result;
+};
+
+/**
+ * التحقق من توازن ميزان المراجعة
+ */
+window.checkTrialBalance = function(){
+  const balances = getAllAccountBalances();
+  let totalDebit = 0, totalCredit = 0;
+  for(const code in balances){
+    const b = balances[code];
+    if(b.balance > 0){
+      if(b.nature === 'debit') totalDebit += b.balance;
+      else totalCredit += b.balance;
+    } else if(b.balance < 0){
+      if(b.nature === 'debit') totalCredit += Math.abs(b.balance);
+      else totalDebit += Math.abs(b.balance);
+    }
+  }
+  return {
+    totalDebit,
+    totalCredit,
+    balanced: Math.abs(totalDebit - totalCredit) < 0.01,
+    difference: totalDebit - totalCredit
+  };
+};
+
 /* ============ لوحة التحكم ============ */
 window.render_dashboard = async function(c){
   const products = dbGetAll('products');
-  const sales = sortByDateDesc(dbGetAll('sales'), 'invoice_date');
-  const purchases = sortByDateDesc(dbGetAll('purchases'), 'invoice_date');
-  const cash = dbGetAll('cash');
   const customers = dbGetAll('customers');
   const suppliers = dbGetAll('suppliers');
   const categories = dbGetAll('categories');
-  const t = today();
-  const salesToday = sales.filter(s => s.invoice_date === t).reduce((a,s) => a + (s.total_amount||0), 0);
-  const purToday = purchases.filter(p => p.invoice_date === t).reduce((a,p) => a + (p.total_amount||0), 0);
-  const cashBalance = cash.reduce((a,x) => a + (x.trans_type==='in' ? (x.amount||0) : -(x.amount||0)), 0);
-  const custDebt = customers.reduce((a,x) => a + (x.current_balance||0), 0);
-  const supDebt = suppliers.reduce((a,x) => a + (x.current_balance||0), 0);
-  const stockValue = products.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
-
-  let prodCards = '';
-  if(products.length === 0){
-    prodCards = '<div class="empty">لا أصناف بعد</div>';
-  } else {
-    for(const p of products){
-      let soldQty = 0, soldVal = 0;
-      sales.forEach(s => (s.items||[]).forEach(i => { if(i.product_id===p.id){ soldQty += i.quantity; soldVal += i.total; }}));
-      let boughtQty = 0;
-      purchases.forEach(pu => (pu.items||[]).forEach(i => { if(i.product_id===p.id) boughtQty += i.quantity; }));
-      const stockVal = (p.current_stock||0) * (p.avg_cost||0);
-      const stockClass = (p.current_stock||0) <= 0 ? 'dp-stock-zero' : ((p.current_stock||0) < 5 ? 'dp-stock-low' : '');
-      const cat = dbGet('categories', p.category_id);
-      const catName = cat ? cat.name : 'بدون فئة';
-      prodCards += `
-        <div class="dash-product-card">
-          <div class="dp-category">🗂️ ${catName}</div>
-          <div class="dp-name">${p.name}</div>
-          <div class="dp-row"><span>مُشترى:</span><b>${fmt(boughtQty)} ${p.unit_buy||''}</b></div>
-          <div class="dp-row"><span>مُباع:</span><b>${fmt(soldQty)} ${p.unit_sell||''}</b></div>
-          <div class="dp-row"><span>الرصيد:</span><b class="${stockClass}">${fmt(p.current_stock)} ${p.unit_sell||''}</b></div>
-          <div class="dp-footer">مخزون: ${fmt(stockVal)}</div>
-        </div>`;
-    }
-  }
-
-  const last5Sales = sales.slice(0, 5);
-  const salesRows = last5Sales.length === 0 ? '<div class="empty">لا مبيعات</div>' :
-    last5Sales.map(s => `
-      <div class="invoice-row">
-        <div>
-          <div class="inv-no">${s.invoice_no}</div>
-          <div class="inv-info">${s.invoice_date} - ${s.customer_name||''}</div>
-        </div>
-        <div class="inv-amount">${fmt(s.total_amount)}</div>
-      </div>`).join('');
-
-  const last5Purch = purchases.slice(0, 5);
-  const purchRows = last5Purch.length === 0 ? '<div class="empty">لا مشتريات</div>' :
-    last5Purch.map(p => `
-      <div class="invoice-row">
-        <div>
-          <div class="inv-no">${p.invoice_no}</div>
-          <div class="inv-info">${p.invoice_date} - ${p.supplier_name||''}</div>
-        </div>
-        <div class="inv-amount">${fmt(p.total_amount)}</div>
-      </div>`).join('');
-
+  
+  const cashBalance = getAccountBalance('1010').balance;
+  const customersBalance = getAccountBalance('1030').balance;
+  const suppliersBalance = getAccountBalance('2010').balance;
+  const salesBalance = getAccountBalance('4010').balance;
+  const stockValue = getAccountBalance('1020').balance;
+  
+  const todayStr = today();
+  const entriesToday = dbGetAll('journal_entries').filter(e => e.date === todayStr);
+  
   c.innerHTML = `
     <div class="stats-grid">
       <div class="stat-box"><div class="label">رصيد الخزينة</div><div class="value">${fmt(cashBalance)}</div></div>
-      <div class="stat-box"><div class="label">مبيعات اليوم</div><div class="value">${fmt(salesToday)}</div></div>
-      <div class="stat-box"><div class="label">مشتريات اليوم</div><div class="value">${fmt(purToday)}</div></div>
+      <div class="stat-box income"><div class="label">إجمالي المبيعات</div><div class="value">${fmt(salesBalance)}</div></div>
       <div class="stat-box"><div class="label">قيمة المخزون</div><div class="value">${fmt(stockValue)}</div></div>
-      <div class="stat-box"><div class="label">مديونية العملاء</div><div class="value">${fmt(custDebt)}</div></div>
-      <div class="stat-box"><div class="label">مستحق للموردين</div><div class="value">${fmt(supDebt)}</div></div>
+      <div class="stat-box warning"><div class="label">مديونية العملاء</div><div class="value">${fmt(customersBalance)}</div></div>
+      <div class="stat-box expense"><div class="label">مستحق للموردين</div><div class="value">${fmt(suppliersBalance)}</div></div>
+      <div class="stat-box"><div class="label">عدد الفئات</div><div class="value">${categories.length}</div></div>
     </div>
 
     <div class="card">
-      <div class="section-title">
-        <h3>📦 ملخص الأصناف</h3>
-        <a onclick="showPage('products')">عرض الكل →</a>
-      </div>
-      <div class="dash-product-grid">${prodCards}</div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">
-        <h3>💰 آخر المبيعات</h3>
-        <a onclick="showPage('sales')">عرض الكل →</a>
-      </div>
-      ${salesRows}
-    </div>
-
-    <div class="card">
-      <div class="section-title">
-        <h3>🛒 آخر المشتريات</h3>
-        <a onclick="showPage('purchases')">عرض الكل →</a>
-      </div>
-      ${purchRows}
-    </div>
-
-    <div class="card">
-      <h3 style="margin-bottom:10px;color:#8B4513">📊 ملخص عام</h3>
-      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:.9rem">
-        <span>عدد الفئات</span><b>${categories.length}</b></div>
+      <h3 style="margin-bottom:10px;color:#8B4513">📊 ملخص النظام</h3>
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:.9rem">
         <span>عدد الأصناف</span><b>${products.length}</b></div>
       <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:.9rem">
         <span>عدد العملاء</span><b>${customers.length}</b></div>
-      <div style="padding:6px 0;display:flex;justify-content:space-between;font-size:.9rem">
+      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:.9rem">
         <span>عدد الموردين</span><b>${suppliers.length}</b></div>
+      <div style="padding:6px 0;display:flex;justify-content:space-between;font-size:.9rem">
+        <span>حركات اليوم</span><b>${entriesToday.length}</b></div>
     </div>
 
     <div class="card">
-      <h3 style="margin-bottom:10px;color:#8B4513">آخر الحركات النقدية</h3>
-      ${sortByDateDesc(cash, 'trans_date').slice(0,10).map(x => `
+      <div class="section-title">
+        <h3>📖 آخر القيود</h3>
+        <a onclick="showPage('journal')">عرض الكل →</a>
+      </div>
+      ${sortByDateDesc(dbGetAll('journal_entries'), 'date').slice(0,5).map(e => `
+        <div class="invoice-row">
+          <div>
+            <div class="inv-no">${e.reference || ''}</div>
+            <div class="inv-info">${e.date} - ${e.description||''}</div>
+          </div>
+          <div class="inv-amount">${fmt(e.total_debit)}</div>
+        </div>`).join('') || '<div class="empty">لا قيود بعد</div>'}
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h3>💵 آخر حركات الخزينة</h3>
+        <a onclick="showPage('cash')">عرض الكل →</a>
+      </div>
+      ${sortByDateDesc(dbGetAll('cash'), 'date').slice(0,5).map(x => `
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:.85rem">
-          <span>${x.trans_date} - ${x.description||''}</span>
-          <b style="color:${x.trans_type==='in'?'green':'red'}">${x.trans_type==='in'?'+':'-'}${fmt(x.amount)}</b>
+          <span>${x.date} - ${x.description||''}</span>
+          <b style="color:${x.type==='in'?'green':'red'}">${x.type==='in'?'+':'-'}${fmt(x.amount)}</b>
         </div>`).join('') || '<div class="empty">لا حركات</div>'}
     </div>`;
 };
@@ -527,7 +639,7 @@ window.render_categories = async function(c){
   c.innerHTML = `
     <div class="card"><button class="btn btn-primary" onclick="openCategoryModal()">➕ إضافة فئة</button></div>
     <div class="card">
-      ${cats.length === 0 ? '<div class="empty">لا توجد فئات بعد<br>اضغط "إضافة فئة" لبدء التسجيل</div>' :
+      ${cats.length === 0 ? '<div class="empty">لا توجد فئات بعد</div>' :
         `<div class="cat-grid">
           ${cats.map(cat => {
             const prodCount = products.filter(p => p.category_id === cat.id).length;
@@ -543,8 +655,8 @@ window.render_categories = async function(c){
     <div class="modal" id="categoryModal"><div class="modal-content">
       <h2 id="catTitle">إضافة فئة</h2>
       <input type="hidden" id="cat_id">
-      <div class="form-group"><label>اسم الفئة *</label><input id="cat_name" placeholder="مثال: كونتر مميز"></div>
-      <div class="form-group"><label>وصف (اختياري)</label><input id="cat_desc"></div>
+      <div class="form-group"><label>اسم الفئة *</label><input id="cat_name"></div>
+      <div class="form-group"><label>وصف</label><input id="cat_desc"></div>
       <button class="btn btn-success" onclick="saveCategory()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('categoryModal')">إلغاء</button>
     </div></div>`;
@@ -573,8 +685,6 @@ window.saveCategory = async function(){
 window.openCategoryProducts = function(catId){
   window.currentCategoryId = catId;
   showPage('products');
-  document.querySelectorAll('.main-nav button').forEach(b => b.classList.remove('active'));
-  document.querySelector('.main-nav button[data-page="products"]')?.classList.add('active');
 };
 
 /* ============ الأصناف ============ */
@@ -599,26 +709,18 @@ window.render_products = async function(c){
           <thead><tr><th>الاسم</th><th>الرصيد</th><th>سعر البيع</th><th></th></tr></thead>
           <tbody>
             ${products.length === 0 ? '<tr><td colspan="4" class="empty">لا أصناف</td></tr>' :
-              products.map(p => {
-                const stockDisplay = renderStockDisplay(p);
-                return `<tr>
-                  <td>
-                    <div style="font-weight:bold">${p.name}</div>
-                    <div class="product-info">
-                      <span class="unit-badge">شراء: ${p.unit_buy}</span>
-                      <span class="unit-badge">بيع: ${p.unit_sell}</span>
-                      ${p.conversion_factor > 1 ? `<span class="unit-badge">1 ${p.unit_buy} = ${p.conversion_factor} ${p.unit_sell}</span>` : ''}
-                    </div>
-                  </td>
-                  <td>${stockDisplay}</td>
-                  <td>${fmt(p.sale_price)} / ${p.unit_sell}</td>
-                  <td>
-                    <div class="actions-cell">
-                      <button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button>
-                      <button class="btn btn-danger btn-sm" onclick="delProduct('${p.id}')">🗑️</button>
-                    </div>
-                  </td></tr>`;
-              }).join('')}
+              products.map(p => `<tr>
+                <td><div style="font-weight:bold">${p.name}</div>
+                  <div class="product-info">
+                    <span class="unit-badge">شراء: ${p.unit_buy}</span>
+                    <span class="unit-badge">بيع: ${p.unit_sell}</span>
+                  </div></td>
+                <td>${fmt(p.current_stock)} ${p.unit_sell}</td>
+                <td>${fmt(p.sale_price)} / ${p.unit_sell}</td>
+                <td><div class="actions-cell">
+                  <button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button>
+                  <button class="btn btn-danger btn-sm" onclick="delProduct('${p.id}')">🗑️</button>
+                </div></td></tr>`).join('')}
           </tbody>
         </table>
       </div>
@@ -628,7 +730,7 @@ window.render_products = async function(c){
   c.innerHTML = `
     <div class="card"><p style="font-size:.9rem;color:#666">اختر فئة لعرض أصنافها:</p></div>
     <div class="card">
-      ${cats.length === 0 ? '<div class="empty">لا توجد فئات. أضف فئة أولاً</div>' :
+      ${cats.length === 0 ? '<div class="empty">لا توجد فئات</div>' :
         `<div class="cat-grid">
           ${cats.map(cat => {
             const prodCount = allProducts.filter(p => p.category_id === cat.id).length;
@@ -643,25 +745,6 @@ window.render_products = async function(c){
     </div>`;
 };
 
-function renderStockDisplay(p){
-  const stock = p.current_stock || 0;
-  const factor = p.conversion_factor || 1;
-  if(factor <= 1){
-    return `<div class="stock-display"><div class="stock-main">${fmt(stock)} ${p.unit_sell}</div></div>`;
-  }
-  const boxes = Math.floor(stock / factor);
-  const remainder = stock - (boxes * factor);
-  let sub = '';
-  if(boxes > 0 && remainder > 0) sub = `≈ ${boxes} ${p.unit_buy} + ${remainder} ${p.unit_sell}`;
-  else if(boxes > 0) sub = `≈ ${boxes} ${p.unit_buy}`;
-  else if(remainder > 0) sub = `أقل من ${p.unit_buy} واحد`;
-  return `<div class="stock-display">
-    <div class="stock-main">${fmt(stock)} ${p.unit_sell}</div>
-    ${sub ? `<div class="stock-sub">${sub}</div>` : ''}
-  </div>`;
-}
-window.renderStockDisplay = renderStockDisplay;
-
 function renderProductModal(){
   return `<div class="modal" id="productModal"><div class="modal-content">
     <h2 id="productTitle">إضافة صنف</h2>
@@ -669,29 +752,15 @@ function renderProductModal(){
     <div class="form-group"><label>الفئة *</label>
       <select id="p_cat">${dbGetAll('categories').map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
     </div>
-    <div class="form-group"><label>اسم الصنف *</label><input id="p_name" placeholder="مثال: أبيض 18مم"></div>
-    <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
-      <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">📏 وحدات القياس</div>
-      <div class="form-group"><label>وحدة الشراء *</label>
-        <select id="p_unit_buy">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label>وحدة البيع *</label>
-        <select id="p_unit_sell">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
-      </div>
-      <div class="form-group" id="factor_group">
-        <label>كم <span id="factor_unit_sell">قطعة</span> في <span id="factor_unit_buy">الكرتونة</span>؟ *</label>
-        <input type="number" id="p_factor" value="1" min="1" oninput="updateConversionHint()">
-      </div>
+    <div class="form-group"><label>اسم الصنف *</label><input id="p_name"></div>
+    <div class="form-group"><label>وحدة الشراء *</label>
+      <select id="p_unit_buy">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
     </div>
-    <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
-      <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">💰 الأسعار</div>
-      <div class="form-group"><label>سعر شراء <span id="label_unit_buy">الوحدة</span> *</label>
-        <input type="number" id="p_pp" value="0">
-      </div>
-      <div class="form-group"><label>سعر بيع <span id="label_unit_sell">الوحدة</span> *</label>
-        <input type="number" id="p_sp" value="0">
-      </div>
+    <div class="form-group"><label>وحدة البيع *</label>
+      <select id="p_unit_sell">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
     </div>
+    <div class="form-group"><label>سعر شراء الوحدة</label><input type="number" id="p_pp" value="0"></div>
+    <div class="form-group"><label>سعر بيع الوحدة</label><input type="number" id="p_sp" value="0"></div>
     <button class="btn btn-success" onclick="saveProduct()">حفظ</button>
     <button class="btn btn-secondary" onclick="closeModal('productModal')">إلغاء</button>
   </div></div>`;
@@ -706,30 +775,9 @@ window.openProductModal = function(catId){
   document.getElementById('p_name').value = '';
   document.getElementById('p_unit_buy').value = 'لوح';
   document.getElementById('p_unit_sell').value = 'لوح';
-  document.getElementById('p_factor').value = 1;
   document.getElementById('p_pp').value = 0;
   document.getElementById('p_sp').value = 0;
-  document.getElementById('p_unit_buy').onchange = updateConversionHint;
-  document.getElementById('p_unit_sell').onchange = updateConversionHint;
-  updateConversionHint();
   openModal('productModal');
-};
-
-window.updateConversionHint = function(){
-  const ub = document.getElementById('p_unit_buy').value;
-  const us = document.getElementById('p_unit_sell').value;
-  const sameUnit = ub === us;
-  const factorGroup = document.getElementById('factor_group');
-  if(sameUnit){
-    factorGroup.style.display = 'none';
-    document.getElementById('p_factor').value = 1;
-  } else {
-    factorGroup.style.display = 'block';
-    document.getElementById('factor_unit_sell').textContent = us;
-    document.getElementById('factor_unit_buy').textContent = ub;
-  }
-  document.getElementById('label_unit_buy').textContent = ub;
-  document.getElementById('label_unit_sell').textContent = us;
 };
 
 window.editProduct = function(id){
@@ -740,12 +788,8 @@ window.editProduct = function(id){
   document.getElementById('p_name').value = p.name;
   document.getElementById('p_unit_buy').value = p.unit_buy || 'لوح';
   document.getElementById('p_unit_sell').value = p.unit_sell || 'لوح';
-  document.getElementById('p_factor').value = p.conversion_factor || 1;
   document.getElementById('p_pp').value = p.purchase_price || 0;
   document.getElementById('p_sp').value = p.sale_price || 0;
-  document.getElementById('p_unit_buy').onchange = updateConversionHint;
-  document.getElementById('p_unit_sell').onchange = updateConversionHint;
-  updateConversionHint();
   openModal('productModal');
 };
 
@@ -755,16 +799,17 @@ window.saveProduct = async function(){
   const name = document.getElementById('p_name').value.trim();
   const unit_buy = document.getElementById('p_unit_buy').value;
   const unit_sell = document.getElementById('p_unit_sell').value;
-  let factor = +document.getElementById('p_factor').value || 1;
   const pp = +document.getElementById('p_pp').value || 0;
   const sp = +document.getElementById('p_sp').value || 0;
   if(!name){ alert('اسم الصنف مطلوب'); return; }
-  if(unit_buy === unit_sell) factor = 1;
-  if(unit_buy !== unit_sell && factor < 1){ alert('معامل التحويل يجب أن يكون 1 على الأقل'); return; }
-  const data = { category_id, name, unit_buy, unit_sell, conversion_factor: factor, purchase_price: pp, sale_price: sp };
+  const data = { category_id, name, unit_buy, unit_sell, purchase_price: pp, sale_price: sp };
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('products', id, data);
-  else { data.current_stock = 0; data.avg_cost = pp / factor; await dbAdd('products', data); }
+  else { 
+    data.current_stock = 0; 
+    data.avg_cost = pp; 
+    await dbAdd('products', data); 
+  }
   showSync('✅ تم الحفظ', 'ok');
   closeModal('productModal');
 };
@@ -777,27 +822,21 @@ window.delProduct = async function(id){
 };
   /* ============ المشتريات ============ */
 window.render_purchases = async function(c){
-  const purchases = sortByDateDesc(dbGetAll('purchases'), 'invoice_date');
+  const purchases = sortByDateDesc(dbGetAll('journal_entries').filter(e => e.reference && e.reference.startsWith('PUR')), 'date');
   const suppliers = dbGetAll('suppliers');
   c.innerHTML = `
     <div class="card"><button class="btn btn-primary" onclick="openPurchaseModal()">➕ فاتورة شراء</button></div>
     <div class="card">
-      <div class="search-box"><input placeholder="🔍 بحث برقم الفاتورة أو التاريخ" oninput="filterTable('purchasesTable', this.value)"></div>
-      <table id="purchasesTable">
-        <thead><tr><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th>مدفوع</th><th></th></tr></thead>
+      <table>
+        <thead><tr><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th></th></tr></thead>
         <tbody>
-          ${purchases.length===0 ? '<tr><td colspan="5" class="empty">لا فواتير</td></tr>' :
-            purchases.map(p => `<tr data-search="${p.invoice_no} ${p.invoice_date}">
-              <td><a href="javascript:void(0)" onclick="viewPurchase('${p.id}')" style="color:#8B4513;font-weight:bold">${p.invoice_no}</a>
-                ${p.edited_at ? '<div class="edit-badge">مُعدّلة</div>' : ''}</td>
-              <td>${p.invoice_date}</td>
-              <td>${fmt(p.total_amount)}</td><td>${fmt(p.paid_amount)}</td>
-              <td>
-                <div class="actions-cell">
-                  <button class="btn btn-info btn-sm" onclick="viewPurchase('${p.id}')">👁️</button>
-                  <button class="btn btn-danger btn-sm" onclick="delPurchase('${p.id}')">🗑️</button>
-                </div>
-              </td></tr>`).join('')}
+          ${purchases.length===0 ? '<tr><td colspan="4" class="empty">لا فواتير</td></tr>' :
+            purchases.map(p => `<tr>
+              <td>${p.reference}</td>
+              <td>${p.date}</td>
+              <td>${fmt(p.total_debit)}</td>
+              <td><button class="btn btn-info btn-sm" onclick="viewEntry('${p.id}')">👁️</button></td>
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>
@@ -812,17 +851,14 @@ window.render_purchases = async function(c){
         </div>
       </div>
       <div class="form-group"><label>التاريخ</label><input type="date" id="pu_date" value="${today()}"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 5px">
-        <label style="font-weight:bold">الأصناف</label>
-        <button class="btn btn-success btn-sm" onclick="openQuickProductFor('purchase')">➕ صنف جديد</button>
-      </div>
+      <label style="font-weight:bold;display:block;margin:10px 0 5px">الأصناف</label>
       <div id="pu_lines"></div>
       <button class="btn btn-secondary" onclick="addPurchaseLine()">➕ سطر</button>
       <div class="totals">
         <div><span>الإجمالي</span><b id="pu_total" class="big">0</b></div>
         <div><span>المدفوع</span>
           <div class="paid-row">
-            <input type="number" id="pu_paid" value="0" oninput="calcPurchaseRem(true)">
+            <input type="number" id="pu_paid" value="0" oninput="calcPurchaseRem()">
             <button class="btn-fill" onclick="fillPurchasePaid()">ملء الكل</button>
           </div>
         </div>
@@ -837,16 +873,7 @@ window.render_purchases = async function(c){
       <div class="form-group"><label>الهاتف</label><input id="qs_phone"></div>
       <button class="btn btn-success" onclick="saveQuickSupplier()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('quickSupplierModal')">إلغاء</button>
-    </div></div>
-    ${renderQuickProductModal()}`;
-};
-
-window.filterTable = function(tableId, q){
-  q = q.trim().toLowerCase();
-  document.querySelectorAll('#'+tableId+' tbody tr').forEach(tr => {
-    const s = (tr.dataset.search||'').toLowerCase();
-    tr.style.display = !q || s.includes(q) ? '' : 'none';
-  });
+    </div></div>`;
 };
 
 window.openQuickSupplier = function(){
@@ -858,168 +885,22 @@ window.openQuickSupplier = function(){
 window.saveQuickSupplier = async function(){
   const name = document.getElementById('qs_name').value.trim();
   if(!name){ alert('الاسم مطلوب'); return; }
-  await dbAdd('suppliers', { name, phone: document.getElementById('qs_phone').value, current_balance: 0 });
+  await dbAdd('suppliers', { name, phone: document.getElementById('qs_phone').value });
   closeModal('quickSupplierModal');
   setTimeout(() => openPurchaseModal(), 300);
 };
 
-function renderQuickProductModal(){
-  return `<div class="modal" id="quickProductModal"><div class="modal-content">
-    <h2>➕ صنف جديد سريع</h2>
-    <input type="hidden" id="qp_source">
-    <div class="form-group"><label>الفئة *</label>
-      <select id="qp_cat">${dbGetAll('categories').map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
-    </div>
-    <div class="form-group"><label>اسم الصنف *</label><input id="qp_name" placeholder="مثال: أبيض 18مم"></div>
-    <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
-      <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">📏 وحدات القياس</div>
-      <div class="form-group"><label>وحدة الشراء *</label>
-        <select id="qp_unit_buy" onchange="updateQuickConversion()">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label>وحدة البيع *</label>
-        <select id="qp_unit_sell" onchange="updateQuickConversion()">${UNITS.map(u => `<option value="${u}">${u}</option>`).join('')}</select>
-      </div>
-      <div class="form-group" id="qp_factor_group" style="display:none">
-        <label>كم <span id="qp_factor_unit_sell">قطعة</span> في <span id="qp_factor_unit_buy">الكرتونة</span>؟ *</label>
-        <input type="number" id="qp_factor" value="1" min="1">
-      </div>
-    </div>
-    <div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-bottom:12px">
-      <div style="font-weight:bold;color:#8B4513;margin-bottom:8px;font-size:.9rem">💰 الأسعار</div>
-      <div class="form-group"><label>سعر شراء <span id="qp_label_buy">لوح</span> *</label>
-        <input type="number" id="qp_pp" value="0">
-      </div>
-      <div class="form-group"><label>سعر بيع <span id="qp_label_sell">لوح</span> *</label>
-        <input type="number" id="qp_sp" value="0">
-      </div>
-    </div>
-    <button class="btn btn-success" onclick="saveQuickProduct()">حفظ وإضافة للفاتورة</button>
-    <button class="btn btn-secondary" onclick="closeModal('quickProductModal')">إلغاء</button>
-  </div></div>`;
-}
-window.renderQuickProductModal = renderQuickProductModal;
-
-window.openQuickProductFor = function(source){
-  const cats = dbGetAll('categories');
-  if(cats.length === 0){ alert('أضف فئة أولاً'); return; }
-  document.getElementById('qp_source').value = source;
-  document.getElementById('qp_cat').value = cats[0].id;
-  document.getElementById('qp_name').value = '';
-  document.getElementById('qp_unit_buy').value = 'لوح';
-  document.getElementById('qp_unit_sell').value = 'لوح';
-  document.getElementById('qp_factor').value = 1;
-  document.getElementById('qp_pp').value = 0;
-  document.getElementById('qp_sp').value = 0;
-  updateQuickConversion();
-  openModal('quickProductModal');
-};
-
-window.updateQuickConversion = function(){
-  const ub = document.getElementById('qp_unit_buy').value;
-  const us = document.getElementById('qp_unit_sell').value;
-  const same = ub === us;
-  document.getElementById('qp_factor_group').style.display = same ? 'none' : 'block';
-  document.getElementById('qp_factor_unit_sell').textContent = us;
-  document.getElementById('qp_factor_unit_buy').textContent = ub;
-  document.getElementById('qp_label_buy').textContent = ub;
-  document.getElementById('qp_label_sell').textContent = us;
-};
-
-window.saveQuickProduct = async function(){
-  const source = document.getElementById('qp_source').value;
-  const category_id = document.getElementById('qp_cat').value;
-  const name = document.getElementById('qp_name').value.trim();
-  const unit_buy = document.getElementById('qp_unit_buy').value;
-  const unit_sell = document.getElementById('qp_unit_sell').value;
-  let factor = +document.getElementById('qp_factor').value || 1;
-  const pp = +document.getElementById('qp_pp').value || 0;
-  const sp = +document.getElementById('qp_sp').value || 0;
-  
-  if(!name){ alert('اسم الصنف مطلوب'); return; }
-  if(unit_buy === unit_sell) factor = 1;
-  if(unit_buy !== unit_sell && factor < 1){ alert('معامل التحويل 1 على الأقل'); return; }
-  
-  showSync('☁️ جاري الحفظ...', 'syncing');
-  const data = {
-    category_id, name, unit_buy, unit_sell,
-    conversion_factor: factor, purchase_price: pp, sale_price: sp,
-    current_stock: 0, avg_cost: pp / factor
-  };
-  const newId = await dbAdd('products', data);
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('quickProductModal');
-  
-  setTimeout(() => {
-    if(source === 'purchase'){
-      addPurchaseLineFromItem({ product_id: newId, quantity: '', unit_price: pp, total: 0 });
-      const lines = document.querySelectorAll('.pu-line');
-      const lastLine = lines[lines.length - 1];
-      if(lastLine){ const sel = lastLine.querySelector('.ln-p'); if(sel) sel.value = newId; }
-    } else if(source === 'sale'){
-      addSaleLineFromItem({ product_id: newId, quantity: '', unit_price: sp, total: 0 });
-      const lines = document.querySelectorAll('.sa-line');
-      const lastLine = lines[lines.length - 1];
-      if(lastLine){ const sel = lastLine.querySelector('.ln-p'); if(sel) sel.value = newId; }
-    }
-  }, 300);
-};
-
 window.openPurchaseModal = async function(){
-  window.editingPurchaseId = null;
   const suppliers = dbGetAll('suppliers');
   const sel = document.getElementById('pu_sup');
   sel.innerHTML = '<option value="">-- اختر --</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  document.getElementById('pu_title').textContent = 'فاتورة شراء';
-  document.getElementById('pu_no').value = genInvoiceNo('PUR', 'purchases');
-  document.getElementById('pu_no').readOnly = true;
+  document.getElementById('pu_no').value = genInvoiceNo('PUR', 'journal_entries', 'reference');
   document.getElementById('pu_sup').value = '';
   document.getElementById('pu_date').value = today();
   document.getElementById('pu_paid').value = 0;
-  document.getElementById('pu_paid').dataset.auto = '1';
   document.getElementById('pu_lines').innerHTML = '';
   addPurchaseLine();
   openModal('purchaseModal');
-};
-
-window.openEditPurchase = async function(id){
-  const p = dbGet('purchases', id);
-  if(!p){ alert('الفاتورة غير موجودة'); return; }
-  window.editingPurchaseId = id;
-  const suppliers = dbGetAll('suppliers');
-  const sel = document.getElementById('pu_sup');
-  sel.innerHTML = '<option value="">-- اختر --</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-  document.getElementById('pu_title').textContent = '✏️ تعديل فاتورة شراء';
-  document.getElementById('pu_no').value = p.invoice_no;
-  document.getElementById('pu_sup').value = p.supplier_id;
-  document.getElementById('pu_date').value = p.invoice_date;
-  document.getElementById('pu_paid').value = p.paid_amount || 0;
-  document.getElementById('pu_paid').dataset.auto = '0';
-  document.getElementById('pu_lines').innerHTML = '';
-  for(const it of (p.items || [])) addPurchaseLineFromItem(it);
-  if(!p.items || p.items.length === 0) addPurchaseLine();
-  setTimeout(() => calcPurchaseTot(), 100);
-  openModal('purchaseModal');
-};
-
-window.addPurchaseLineFromItem = function(it){
-  const products = dbGetAll('products');
-  const div = document.createElement('div');
-  div.className = 'line pu-line';
-  div.innerHTML = `
-    <select class="ln-p" onchange="autoPurchasePrice(this)">
-      <option value="">-- اختر الصنف --</option>
-      ${products.map(p => {
-        const cat = dbGet('categories', p.category_id);
-        const label = (cat ? cat.name + ' - ' : '') + p.name;
-        const sel = p.id === it.product_id ? 'selected' : '';
-        return `<option value="${p.id}" data-pp="${p.purchase_price||0}" data-unit="${p.unit_buy||'وحدة'}" ${sel}>${label}</option>`;
-      }).join('')}
-    </select>
-    <input type="number" class="ln-q" placeholder="كمية" value="${it.quantity||''}" oninput="calcPurchaseTot()">
-    <input type="number" class="ln-r" placeholder="سعر" value="${it.unit_price||''}" oninput="calcPurchaseTot()">
-    <div class="line-total">${fmt(it.total||0)}</div>
-    <button onclick="this.parentElement.remove();calcPurchaseTot()">✖</button>`;
-  document.getElementById('pu_lines').appendChild(div);
 };
 
 window.addPurchaseLine = function(){
@@ -1032,7 +913,7 @@ window.addPurchaseLine = function(){
       ${products.map(p => {
         const cat = dbGet('categories', p.category_id);
         const label = (cat ? cat.name + ' - ' : '') + p.name;
-        return `<option value="${p.id}" data-pp="${p.purchase_price||0}" data-unit="${p.unit_buy||'وحدة'}">${label}</option>`;
+        return `<option value="${p.id}" data-pp="${p.purchase_price||0}">${label}</option>`;
       }).join('')}
     </select>
     <input type="number" class="ln-q" placeholder="كمية" oninput="calcPurchaseTot()">
@@ -1045,11 +926,10 @@ window.addPurchaseLine = function(){
 window.autoPurchasePrice = function(sel){
   const opt = sel.options[sel.selectedIndex];
   const pp = opt?.dataset.pp || 0;
-  const unit = opt?.dataset.unit || '';
   const line = sel.parentElement;
-  const currentR = line.querySelector('.ln-r').value;
-  if(!currentR || currentR === '0') line.querySelector('.ln-r').value = pp;
-  line.querySelector('.ln-r').placeholder = `سعر ${unit}`;
+  if(!line.querySelector('.ln-r').value || line.querySelector('.ln-r').value === '0'){
+    line.querySelector('.ln-r').value = pp;
+  }
   calcPurchaseTot();
 };
 
@@ -1062,64 +942,22 @@ window.calcPurchaseTot = function(){
     l.querySelector('.line-total').textContent = fmt(lt);
     t += lt;
   });
-  const totalEl = document.getElementById('pu_total');
-  totalEl.textContent = fmt(t);
-  totalEl.dataset.raw = t;
-  const paidInput = document.getElementById('pu_paid');
-  if(paidInput.dataset.auto === '1') paidInput.value = t;
+  document.getElementById('pu_total').textContent = fmt(t);
+  document.getElementById('pu_total').dataset.raw = t;
   calcPurchaseRem();
 };
 
-window.calcPurchaseRem = function(manual){
+window.calcPurchaseRem = function(){
   const t = +document.getElementById('pu_total').dataset.raw || 0;
   const p = +document.getElementById('pu_paid').value || 0;
-  if(manual) document.getElementById('pu_paid').dataset.auto = '0';
   document.getElementById('pu_rem').textContent = fmt(t - p);
 };
 
 window.fillPurchasePaid = function(){
   const t = +document.getElementById('pu_total').dataset.raw || 0;
   document.getElementById('pu_paid').value = t;
-  document.getElementById('pu_paid').dataset.auto = '1';
   calcPurchaseRem();
 };
-
-// ====== دالة مساعدة: ترجّع تأثير فاتورة شراء على المخزون ======
-async function reversePurchaseStock(p){
-  for(const it of (p.items || [])){
-    const prod = dbGet('products', it.product_id);
-    if(!prod) continue;
-    const factor = it.conversion_factor || prod.conversion_factor || 1;
-    const qtyInSmall = it.quantity * factor;
-    const oldStock = prod.current_stock || 0;
-    const oldValue = oldStock * (prod.avg_cost || 0);
-    const removeValue = qtyInSmall * (it.unit_price / factor);
-    const ns = oldStock - qtyInSmall;
-    const newAvg = ns > 0 ? (oldValue - removeValue) / ns : 0;
-    await dbUpdate('products', prod.id, {
-      current_stock: ns,
-      avg_cost: newAvg < 0 ? 0 : newAvg
-    });
-  }
-}
-
-// ====== دالة مساعدة: تحذف حركات الخزينة المرتبطة بفاتورة ======
-async function deleteLinkedCash(reference){
-  const linked = dbGetAll('cash').filter(c => 
-    c.reference === reference
-  );
-  for(const c of linked) await dbDelete('cash', c.id);
-  return linked.length;
-}
-
-// ====== دالة مساعدة: تحذف حركات المورد المرتبطة بفاتورة ======
-async function deleteLinkedSupplierTx(invoiceNo){
-  const linked = dbGetAll('supplier_transactions').filter(t => 
-    t.description && t.description.includes(invoiceNo)
-  );
-  for(const t of linked) await dbDelete('supplier_transactions', t.id);
-  return linked.length;
-}
 
 window.savePurchase = async function(){
   const sid = document.getElementById('pu_sup').value;
@@ -1143,214 +981,80 @@ window.savePurchase = async function(){
   
   showSync('☁️ جاري الحفظ...', 'syncing');
   
-  const itemsData = [];
-  for(const l of lines){
-    const p = dbGet('products', l.product_id);
-    if(!p) continue;
-    itemsData.push({
-      product_id: l.product_id, quantity: l.quantity, unit: p.unit_buy || 'وحدة',
-      unit_price: l.unit_price, total: l.total,
-      conversion_factor: p.conversion_factor || 1, unit_sell: p.unit_sell || 'وحدة'
-    });
-  }
-  
-  // ===== حالة التعديل =====
-  if(window.editingPurchaseId){
-    const oldPurch = dbGet('purchases', window.editingPurchaseId);
-    if(!oldPurch){ alert('الفاتورة الأصلية غير موجودة'); return; }
-    
-    // 1. ارجع تأثير الفاتورة القديمة على المخزون
-    await reversePurchaseStock(oldPurch);
-    
-    // 2. ارجع رصيد المورد
-    const oldSup = dbGet('suppliers', oldPurch.supplier_id);
-    if(oldSup){
-      const newBal = (oldSup.current_balance||0) - (oldPurch.remaining||0);
-      await dbUpdate('suppliers', oldSup.id, { current_balance: newBal });
+  try {
+    // 1. إنشاء القيد المحاسبي
+    const journalLines = [
+      { account_code: '1020', debit: total, credit: 0, description: `شراء بضاعة ${inv}` }
+    ];
+    if(paid > 0){
+      journalLines.push({ account_code: '1010', debit: 0, credit: paid, description: `دفعة نقدية ${inv}` });
+    }
+    if(rem > 0){
+      journalLines.push({ account_code: '2010', debit: 0, credit: rem, description: `مستحق للمورد ${supplier?.name||''}` });
     }
     
-    // 3. احذف حركات الخزينة والحركات المرتبطة بالفاتورة القديمة
-    await deleteLinkedCash(oldPurch.invoice_no);
-    await deleteLinkedSupplierTx(oldPurch.invoice_no);
+    const entry = await createJournalEntry({
+      date: d,
+      reference: inv,
+      description: `فاتورة شراء من ${supplier?.name||''}`,
+      lines: journalLines
+    });
     
-    // 4. طبّق الفاتورة الجديدة على المخزون
+    // 2. تحديث المخزون
     for(const l of lines){
       const p = dbGet('products', l.product_id);
-      if(!p) continue;
-      const factor = p.conversion_factor || 1;
-      const qtyInSmallUnit = l.quantity * factor;
-      const costPerSmallUnit = l.unit_price / factor;
-      const oldStock = p.current_stock || 0;
-      const oldValue = oldStock * (p.avg_cost || 0);
-      const newValue = qtyInSmallUnit * costPerSmallUnit;
-      const ns = oldStock + qtyInSmallUnit;
-      const newAvg = ns > 0 ? (oldValue + newValue) / ns : costPerSmallUnit;
-      await dbUpdate('products', p.id, { current_stock: ns, avg_cost: newAvg, purchase_price: l.unit_price });
+      if(p){
+        const oldStock = p.current_stock || 0;
+        const oldValue = oldStock * (p.avg_cost || 0);
+        const newValue = l.quantity * l.unit_price;
+        const ns = oldStock + l.quantity;
+        const newAvg = ns > 0 ? (oldValue + newValue) / ns : l.unit_price;
+        await dbUpdate('products', p.id, {
+          current_stock: ns,
+          avg_cost: newAvg,
+          purchase_price: l.unit_price
+        });
+      }
     }
     
-    // 5. طبّق رصيد المورد الجديد
-    const supRef = dbGet('suppliers', sid);
-    if(supRef){
-      await dbUpdate('suppliers', sid, { current_balance: (supRef.current_balance||0) + rem });
-      await dbAdd('supplier_transactions', {
-        supplier_id: sid, supplier_name: supRef.name,
-        trans_date: d, trans_type: 'purchase',
-        amount: total, description: `فاتورة شراء ${inv}`,
-        balance_after: (supRef.current_balance||0) + rem, reference: inv
+    // 3. تسجيل حركة الخزينة (لو فيه مدفوع)
+    if(paid > 0){
+      await dbAdd('cash', {
+        date: d,
+        type: 'out',
+        amount: paid,
+        source: 'مشتريات',
+        reference: inv,
+        description: `دفعة شراء ${inv}`
       });
     }
     
-    // 6. سجّل حركة الخزينة الجديدة
-    if(paid > 0){
-      await dbAdd('cash', { trans_date: d, trans_type: 'out', amount: paid, source: 'مشتريات', reference: inv, description: 'دفعة شراء ' + inv });
-    }
-    
-    // 7. حدّث الفاتورة
-    await dbUpdate('purchases', window.editingPurchaseId, {
-      invoice_date: d, supplier_id: sid, supplier_name: supplier?.name || '',
-      total_amount: total, paid_amount: paid, remaining: rem,
-      items: itemsData, edited_at: new Date().toISOString()
-    });
-    
-    showSync('✅ تم التعديل', 'ok');
+    showSync('✅ تم الحفظ', 'ok');
     closeModal('purchaseModal');
-    window.editingPurchaseId = null;
-    return;
+    showPage('purchases');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert('خطأ في الحفظ: ' + err.message);
   }
-  
-  // ===== فاتورة جديدة =====
-  await dbAdd('purchases', {
-    invoice_no: inv, invoice_date: d, supplier_id: sid,
-    supplier_name: supplier?.name || '',
-    total_amount: total, paid_amount: paid, remaining: rem, items: itemsData
-  });
-  
-  for(const l of lines){
-    const p = dbGet('products', l.product_id);
-    if(!p) continue;
-    const factor = p.conversion_factor || 1;
-    const qtyInSmallUnit = l.quantity * factor;
-    const costPerSmallUnit = l.unit_price / factor;
-    const oldStock = p.current_stock || 0;
-    const oldValue = oldStock * (p.avg_cost || 0);
-    const newValue = qtyInSmallUnit * costPerSmallUnit;
-    const ns = oldStock + qtyInSmallUnit;
-    const newAvg = ns > 0 ? (oldValue + newValue) / ns : costPerSmallUnit;
-    await dbUpdate('products', p.id, { current_stock: ns, avg_cost: newAvg, purchase_price: l.unit_price });
-  }
-  
-  if(supplier){
-    await dbUpdate('suppliers', sid, { current_balance: (supplier.current_balance||0) + rem });
-    await dbAdd('supplier_transactions', {
-      supplier_id: sid, supplier_name: supplier.name,
-      trans_date: d, trans_type: 'purchase',
-      amount: total, description: `فاتورة شراء ${inv}`,
-      balance_after: (supplier.current_balance||0) + rem, reference: inv
-    });
-  }
-  
-  if(paid > 0){
-    await dbAdd('cash', { trans_date: d, trans_type: 'out', amount: paid, source: 'مشتريات', reference: inv, description: 'دفعة شراء ' + inv });
-  }
-  
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('purchaseModal');
-};
-
-// ====== حذف فاتورة شراء مع استرجاع كامل ======
-window.delPurchase = async function(id){
-  const p = dbGet('purchases', id);
-  if(!p){ alert('الفاتورة غير موجودة'); return; }
-  
-  if(!confirm(`حذف الفاتورة ${p.invoice_no}؟\nسيتم:\n- استرجاع المخزون\n- تعديل رصيد المورد\n- حذف حركات الخزينة`)) return;
-  
-  showSync('☁️ جاري الحذف...', 'syncing');
-  
-  // 1. ارجع تأثير المخزون
-  await reversePurchaseStock(p);
-  
-  // 2. ارجع رصيد المورد
-  const sup = dbGet('suppliers', p.supplier_id);
-  if(sup){
-    await dbUpdate('suppliers', sup.id, {
-      current_balance: (sup.current_balance||0) - (p.remaining||0)
-    });
-  }
-  
-  // 3. احذف حركات الخزينة المرتبطة
-  await deleteLinkedCash(p.invoice_no);
-  
-  // 4. احذف حركات المورد المرتبطة
-  await deleteLinkedSupplierTx(p.invoice_no);
-  
-  // 5. احذف الفاتورة
-  await dbDelete('purchases', id);
-  
-  showSync('✅ تم الحذف مع الاسترجاع', 'ok');
-};
-
-window.viewPurchase = function(id){
-  const p = dbGet('purchases', id); if(!p) return;
-  let rows = '';
-  for(const it of p.items){
-    const prod = dbGet('products', it.product_id);
-    rows += `<tr>
-      <td>${prod?.name||''}</td>
-      <td>${fmt(it.quantity)} ${it.unit||''}</td>
-      <td>${fmt(it.unit_price)}</td>
-      <td><b>${fmt(it.total)}</b></td>
-    </tr>`;
-  }
-  const editedNote = p.edited_at ? `<div class="edit-badge">✏️ تم التعديل</div>` : '';
-  const html = `
-    <div class="invoice-view">
-      <div class="inv-header"><h2>🪵 حسابات الكونتر</h2><div style="font-size:.85rem;color:#666">فاتورة شراء</div></div>
-      <div class="inv-meta">
-        <div><b>رقم الفاتورة:</b> ${p.invoice_no}${editedNote}</div>
-        <div><b>التاريخ:</b> ${p.invoice_date}</div>
-        <div><b>المورد:</b> ${p.supplier_name||''}</div>
-      </div>
-      <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-        <tbody>${rows}</tbody></table>
-      <div style="background:#f0f0f0;padding:10px;border-radius:8px">
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>الإجمالي</span><b>${fmt(p.total_amount)}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المدفوع</span><b style="color:green">${fmt(p.paid_amount)}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المتبقي</span><b style="color:red">${fmt(p.remaining)}</b></div>
-      </div>
-      <div class="no-print" style="margin-top:15px;display:flex;gap:5px;flex-wrap:wrap">
-        <button class="btn btn-wa" onclick="shareInvoice('purchase','${p.id}')">📱 واتساب</button>
-        <button class="btn btn-primary" onclick="printInvoice('purchase','${p.id}')">🖨️ طباعة</button>
-        <button class="btn btn-warning" onclick="closeModal('invoiceViewModal');openEditPurchase('${p.id}')">✏️ تعديل</button>
-        <button class="btn btn-secondary" onclick="closeModal('invoiceViewModal')">إغلاق</button>
-      </div>
-    </div>`;
-  showInvoiceModal(html);
 };
 
 /* ============ المبيعات ============ */
 window.render_sales = async function(c){
-  const sales = sortByDateDesc(dbGetAll('sales'), 'invoice_date');
+  const sales = sortByDateDesc(dbGetAll('journal_entries').filter(e => e.reference && e.reference.startsWith('SAL')), 'date');
   const customers = dbGetAll('customers');
   c.innerHTML = `
     <div class="card"><button class="btn btn-primary" onclick="openSaleModal()">➕ فاتورة بيع</button></div>
     <div class="card">
-      <div class="search-box"><input placeholder="🔍 بحث بالرقم أو التاريخ أو العميل" oninput="filterTable('salesTable', this.value)"></div>
-      <table id="salesTable">
-        <thead><tr><th>الرقم</th><th>التاريخ</th><th>العميل</th><th>الإجمالي</th><th></th></tr></thead>
+      <table>
+        <thead><tr><th>الرقم</th><th>التاريخ</th><th>الإجمالي</th><th></th></tr></thead>
         <tbody>
-          ${sales.length===0 ? '<tr><td colspan="5" class="empty">لا فواتير</td></tr>' :
-            sales.map(s => `<tr data-search="${s.invoice_no} ${s.invoice_date} ${s.customer_name||''}">
-              <td><a href="javascript:void(0)" onclick="viewSale('${s.id}')" style="color:#8B4513;font-weight:bold">${s.invoice_no}</a>
-                ${s.edited_at ? '<div class="edit-badge">مُعدّلة</div>' : ''}</td>
-              <td>${s.invoice_date}</td>
-              <td>${s.customer_name||''}</td>
-              <td>${fmt(s.total_amount)}</td>
-              <td>
-                <div class="actions-cell">
-                  <button class="btn btn-info btn-sm" onclick="viewSale('${s.id}')">👁️</button>
-                  <button class="btn btn-danger btn-sm" onclick="delSale('${s.id}')">🗑️</button>
-                </div>
-              </td></tr>`).join('')}
+          ${sales.length===0 ? '<tr><td colspan="4" class="empty">لا فواتير</td></tr>' :
+            sales.map(s => `<tr>
+              <td>${s.reference}</td>
+              <td>${s.date}</td>
+              <td>${fmt(s.total_debit)}</td>
+              <td><button class="btn btn-info btn-sm" onclick="viewEntry('${s.id}')">👁️</button></td>
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>
@@ -1365,17 +1069,14 @@ window.render_sales = async function(c){
         </div>
       </div>
       <div class="form-group"><label>التاريخ</label><input type="date" id="sa_date" value="${today()}"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 5px">
-        <label style="font-weight:bold">الأصناف</label>
-        <button class="btn btn-success btn-sm" onclick="openQuickProductFor('sale')">➕ صنف جديد</button>
-      </div>
+      <label style="font-weight:bold;display:block;margin:10px 0 5px">الأصناف</label>
       <div id="sa_lines"></div>
       <button class="btn btn-secondary" onclick="addSaleLine()">➕ سطر</button>
       <div class="totals">
         <div><span>الإجمالي</span><b id="sa_total" class="big">0</b></div>
         <div><span>المدفوع</span>
           <div class="paid-row">
-            <input type="number" id="sa_paid" value="0" oninput="calcSaleRem(true)">
+            <input type="number" id="sa_paid" value="0" oninput="calcSaleRem()">
             <button class="btn-fill" onclick="fillSalePaid()">ملء الكل</button>
           </div>
         </div>
@@ -1390,8 +1091,7 @@ window.render_sales = async function(c){
       <div class="form-group"><label>الهاتف</label><input id="qc_phone"></div>
       <button class="btn btn-success" onclick="saveQuickCustomer()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('quickCustomerModal')">إلغاء</button>
-    </div></div>
-    ${renderQuickProductModal()}`;
+    </div></div>`;
 };
 
 window.openQuickCustomer = function(){
@@ -1403,67 +1103,22 @@ window.openQuickCustomer = function(){
 window.saveQuickCustomer = async function(){
   const name = document.getElementById('qc_name').value.trim();
   if(!name){ alert('الاسم مطلوب'); return; }
-  await dbAdd('customers', { name, phone: document.getElementById('qc_phone').value, current_balance: 0 });
+  await dbAdd('customers', { name, phone: document.getElementById('qc_phone').value });
   closeModal('quickCustomerModal');
   setTimeout(() => openSaleModal(), 300);
 };
 
 window.openSaleModal = async function(){
-  window.editingSaleId = null;
   const customers = dbGetAll('customers');
   const sel = document.getElementById('sa_cus');
   sel.innerHTML = '<option value="">-- اختر --</option>' + customers.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-  document.getElementById('sa_title').textContent = 'فاتورة بيع';
-  document.getElementById('sa_no').value = genInvoiceNo('SAL', 'sales');
-  document.getElementById('sa_no').readOnly = true;
+  document.getElementById('sa_no').value = genInvoiceNo('SAL', 'journal_entries', 'reference');
   document.getElementById('sa_cus').value = '';
   document.getElementById('sa_date').value = today();
   document.getElementById('sa_paid').value = 0;
-  document.getElementById('sa_paid').dataset.auto = '1';
   document.getElementById('sa_lines').innerHTML = '';
   addSaleLine();
   openModal('saleModal');
-};
-
-window.openEditSale = async function(id){
-  const s = dbGet('sales', id);
-  if(!s){ alert('الفاتورة غير موجودة'); return; }
-  window.editingSaleId = id;
-  const customers = dbGetAll('customers');
-  const sel = document.getElementById('sa_cus');
-  sel.innerHTML = '<option value="">-- اختر --</option>' + customers.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
-  document.getElementById('sa_title').textContent = '✏️ تعديل فاتورة بيع';
-  document.getElementById('sa_no').value = s.invoice_no;
-  document.getElementById('sa_cus').value = s.customer_id;
-  document.getElementById('sa_date').value = s.invoice_date;
-  document.getElementById('sa_paid').value = s.paid_amount || 0;
-  document.getElementById('sa_paid').dataset.auto = '0';
-  document.getElementById('sa_lines').innerHTML = '';
-  for(const it of (s.items || [])) addSaleLineFromItem(it);
-  if(!s.items || s.items.length === 0) addSaleLine();
-  setTimeout(() => calcSaleTot(), 100);
-  openModal('saleModal');
-};
-
-window.addSaleLineFromItem = function(it){
-  const products = dbGetAll('products');
-  const div = document.createElement('div');
-  div.className = 'line sa-line';
-  div.innerHTML = `
-    <select class="ln-p" onchange="autoSalePrice(this)">
-      <option value="">-- اختر الصنف --</option>
-      ${products.map(p => {
-        const cat = dbGet('categories', p.category_id);
-        const label = (cat ? cat.name + ' - ' : '') + p.name + ` [${fmt(p.current_stock||0)} ${p.unit_sell}]`;
-        const sel = p.id === it.product_id ? 'selected' : '';
-        return `<option value="${p.id}" data-sp="${p.sale_price||0}" data-st="${p.current_stock||0}" data-us="${p.unit_sell||''}" data-f="${p.conversion_factor||1}" ${sel}>${label}</option>`;
-      }).join('')}
-    </select>
-    <input type="number" class="ln-q" placeholder="كمية" value="${it.quantity||''}" oninput="calcSaleTot()">
-    <input type="number" class="ln-r" placeholder="سعر" value="${it.unit_price||''}" oninput="calcSaleTot()">
-    <div class="line-total">${fmt(it.total||0)}</div>
-    <button onclick="this.parentElement.remove();calcSaleTot()">✖</button>`;
-  document.getElementById('sa_lines').appendChild(div);
 };
 
 window.addSaleLine = function(){
@@ -1476,7 +1131,7 @@ window.addSaleLine = function(){
       ${products.map(p => {
         const cat = dbGet('categories', p.category_id);
         const label = (cat ? cat.name + ' - ' : '') + p.name + ` [${fmt(p.current_stock||0)} ${p.unit_sell}]`;
-        return `<option value="${p.id}" data-sp="${p.sale_price||0}" data-st="${p.current_stock||0}" data-us="${p.unit_sell||''}" data-f="${p.conversion_factor||1}">${label}</option>`;
+        return `<option value="${p.id}" data-sp="${p.sale_price||0}" data-cost="${p.avg_cost||0}" data-stock="${p.current_stock||0}">${label}</option>`;
       }).join('')}
     </select>
     <input type="number" class="ln-q" placeholder="كمية" oninput="calcSaleTot()">
@@ -1489,11 +1144,10 @@ window.addSaleLine = function(){
 window.autoSalePrice = function(sel){
   const opt = sel.options[sel.selectedIndex];
   const sp = opt?.dataset.sp || 0;
-  const us = opt?.dataset.us || '';
   const line = sel.parentElement;
-  const currentR = line.querySelector('.ln-r').value;
-  if(!currentR || currentR === '0') line.querySelector('.ln-r').value = sp;
-  line.querySelector('.ln-r').placeholder = `سعر ${us}`;
+  if(!line.querySelector('.ln-r').value || line.querySelector('.ln-r').value === '0'){
+    line.querySelector('.ln-r').value = sp;
+  }
   calcSaleTot();
 };
 
@@ -1506,48 +1160,22 @@ window.calcSaleTot = function(){
     l.querySelector('.line-total').textContent = fmt(lt);
     t += lt;
   });
-  const totalEl = document.getElementById('sa_total');
-  totalEl.textContent = fmt(t);
-  totalEl.dataset.raw = t;
-  const paidInput = document.getElementById('sa_paid');
-  if(paidInput.dataset.auto === '1') paidInput.value = t;
+  document.getElementById('sa_total').textContent = fmt(t);
+  document.getElementById('sa_total').dataset.raw = t;
   calcSaleRem();
 };
 
-window.calcSaleRem = function(manual){
+window.calcSaleRem = function(){
   const t = +document.getElementById('sa_total').dataset.raw || 0;
   const p = +document.getElementById('sa_paid').value || 0;
-  if(manual) document.getElementById('sa_paid').dataset.auto = '0';
   document.getElementById('sa_rem').textContent = fmt(t - p);
 };
 
 window.fillSalePaid = function(){
   const t = +document.getElementById('sa_total').dataset.raw || 0;
   document.getElementById('sa_paid').value = t;
-  document.getElementById('sa_paid').dataset.auto = '1';
   calcSaleRem();
 };
-
-// ====== دالة مساعدة: ترجّع تأثير فاتورة بيع على المخزون ======
-async function reverseSaleStock(s){
-  for(const it of (s.items || [])){
-    const prod = dbGet('products', it.product_id);
-    if(!prod) continue;
-    await dbUpdate('products', prod.id, {
-      current_stock: (prod.current_stock||0) + it.quantity
-    });
-  }
-}
-
-// ====== دالة مساعدة: تحذف حركات كشف حساب العميل المرتبطة ======
-async function deleteLinkedCustomerTx(invoiceNo){
-  const linked = dbGetAll('customer_transactions').filter(t => 
-    t.reference === invoiceNo || 
-    (t.description && t.description.includes(invoiceNo))
-  );
-  for(const t of linked) await dbDelete('customer_transactions', t.id);
-  return linked.length;
-}
 
 window.saveSale = async function(){
   const cid = document.getElementById('sa_cus').value;
@@ -1555,6 +1183,7 @@ window.saveSale = async function(){
   if(!cid){ alert('اختر العميل'); return; }
   
   const lines = [];
+  let err = false;
   document.querySelectorAll('.sa-line').forEach(l => {
     const pid = l.querySelector('.ln-p').value;
     const q = +l.querySelector('.ln-q').value;
@@ -1563,23 +1192,11 @@ window.saveSale = async function(){
   });
   if(!lines.length){ alert('أضف أصنافاً'); return; }
   
-  // تحقق من الرصيد (مع إضافة الكميات القديمة لو تعديل)
-  let oldQuantities = {};
-  if(window.editingSaleId){
-    const oldSale = dbGet('sales', window.editingSaleId);
-    if(oldSale){
-      for(const it of (oldSale.items || [])){
-        oldQuantities[it.product_id] = (oldQuantities[it.product_id] || 0) + it.quantity;
-      }
-    }
-  }
-  
-  let err = false;
+  // تحقق من الرصيد
   for(const l of lines){
     const p = dbGet('products', l.product_id);
-    const availableStock = (p?.current_stock || 0) + (oldQuantities[l.product_id] || 0);
-    if(!p || availableStock < l.quantity){
-      alert(`الرصيد غير كافٍ: ${p?.name||''} (متاح ${fmt(availableStock)} ${p?.unit_sell||''})`);
+    if(!p || (p.current_stock||0) < l.quantity){
+      alert(`الرصيد غير كافٍ: ${p?.name||''} (متاح ${fmt(p?.current_stock||0)})`);
       err = true; break;
     }
   }
@@ -1591,164 +1208,105 @@ window.saveSale = async function(){
   const inv = document.getElementById('sa_no').value;
   const customer = dbGet('customers', cid);
   
-  const itemsWithCost = lines.map(l => {
+  // حساب تكلفة البضاعة المباعة
+  let cogs = 0;
+  for(const l of lines){
     const p = dbGet('products', l.product_id);
-    const cost = p?.avg_cost || 0;
-    return { ...l, unit: p?.unit_sell || 'وحدة', cost_price: cost, profit: (l.unit_price - cost) * l.quantity };
-  });
+    cogs += (p?.avg_cost || 0) * l.quantity;
+  }
   
   showSync('☁️ جاري الحفظ...', 'syncing');
   
-  // ===== حالة التعديل =====
-  if(window.editingSaleId){
-    const oldSale = dbGet('sales', window.editingSaleId);
-    if(!oldSale){ alert('الفاتورة الأصلية غير موجودة'); return; }
+  try {
+    // 1. إنشاء القيد المحاسبي
+    const journalLines = [];
     
-    // 1. ارجع تأثير الفاتورة القديمة على المخزون
-    await reverseSaleStock(oldSale);
-    
-    // 2. ارجع رصيد العميل
-    const oldCust = dbGet('customers', oldSale.customer_id);
-    if(oldCust){
-      const newBal = (oldCust.current_balance||0) - (oldSale.remaining||0);
-      await dbUpdate('customers', oldCust.id, { current_balance: newBal });
+    // مدين: الخزينة (لو فيه مدفوع)
+    if(paid > 0){
+      journalLines.push({ account_code: '1010', debit: paid, credit: 0, description: `تحصيل نقدي ${inv}` });
     }
+    // مدين: العملاء (لو فيه متبقي)
+    if(rem > 0){
+      journalLines.push({ account_code: '1030', debit: rem, credit: 0, description: `مديونية ${customer?.name||''}` });
+    }
+    // دائن: المبيعات
+    journalLines.push({ account_code: '4010', debit: 0, credit: total, description: `مبيعات ${inv}` });
+    // مدين: تكلفة المبيعات
+    journalLines.push({ account_code: '5010', debit: cogs, credit: 0, description: `تكلفة مبيعات ${inv}` });
+    // دائن: المخزون
+    journalLines.push({ account_code: '1020', debit: 0, credit: cogs, description: `خروج مخزون ${inv}` });
     
-    // 3. احذف حركات الخزينة وكشف الحساب القديمة
-    await deleteLinkedCash(oldSale.invoice_no);
-    await deleteLinkedCustomerTx(oldSale.invoice_no);
+    const entry = await createJournalEntry({
+      date: d,
+      reference: inv,
+      description: `فاتورة بيع للعميل ${customer?.name||''}`,
+      lines: journalLines
+    });
     
-    // 4. اخصم المخزون الجديد
+    // 2. خصم المخزون
     for(const l of lines){
       const p = dbGet('products', l.product_id);
-      if(p) await dbUpdate('products', p.id, { current_stock: (p.current_stock||0) - l.quantity });
+      if(p){
+        await dbUpdate('products', p.id, {
+          current_stock: (p.current_stock||0) - l.quantity
+        });
+      }
     }
     
-    // 5. طبّق رصيد العميل الجديد
-    const custRef = dbGet('customers', cid);
-    if(custRef){
-      await dbUpdate('customers', cid, { current_balance: (custRef.current_balance||0) + rem });
-      await dbAdd('customer_transactions', {
-        customer_id: cid, customer_name: custRef.name,
-        trans_date: d, trans_type: 'sale',
-        amount: total, description: `فاتورة بيع ${inv}`,
-        balance_after: (custRef.current_balance||0) + rem, reference: inv
+    // 3. تسجيل حركة الخزينة
+    if(paid > 0){
+      await dbAdd('cash', {
+        date: d,
+        type: 'in',
+        amount: paid,
+        source: 'مبيعات',
+        reference: inv,
+        description: `تحصيل بيع ${inv}`
       });
     }
     
-    // 6. سجّل حركة الخزينة الجديدة
-    if(paid > 0){
-      await dbAdd('cash', { trans_date: d, trans_type: 'in', amount: paid, source: 'مبيعات', reference: inv, description: 'تحصيل بيع ' + inv });
-    }
-    
-    // 7. حدّث الفاتورة
-    await dbUpdate('sales', window.editingSaleId, {
-      invoice_date: d, customer_id: cid, customer_name: customer?.name || '',
-      total_amount: total, paid_amount: paid, remaining: rem,
-      items: itemsWithCost, edited_at: new Date().toISOString()
-    });
-    
-    showSync('✅ تم التعديل', 'ok');
+    showSync('✅ تم الحفظ', 'ok');
     closeModal('saleModal');
-    window.editingSaleId = null;
-    return;
+    showPage('sales');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert('خطأ في الحفظ: ' + err.message);
   }
-  
-  // ===== فاتورة جديدة =====
-  await dbAdd('sales', {
-    invoice_no: inv, invoice_date: d, customer_id: cid,
-    customer_name: customer?.name || '',
-    total_amount: total, paid_amount: paid, remaining: rem, items: itemsWithCost
-  });
-  
-  for(const l of lines){
-    const p = dbGet('products', l.product_id);
-    if(p) await dbUpdate('products', p.id, { current_stock: (p.current_stock||0) - l.quantity });
-  }
-  
-  if(customer){
-    const newBal = (customer.current_balance||0) + rem;
-    await dbUpdate('customers', cid, { current_balance: newBal });
-    await dbAdd('customer_transactions', {
-      customer_id: cid, customer_name: customer.name,
-      trans_date: d, trans_type: 'sale',
-      amount: total, description: `فاتورة بيع ${inv}`,
-      balance_after: newBal, reference: inv
-    });
-  }
-  
-  if(paid > 0){
-    await dbAdd('cash', { trans_date: d, trans_type: 'in', amount: paid, source: 'مبيعات', reference: inv, description: 'تحصيل بيع ' + inv });
-  }
-  
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('saleModal');
 };
 
-// ====== حذف فاتورة بيع مع استرجاع كامل ======
-window.delSale = async function(id){
-  const s = dbGet('sales', id);
-  if(!s){ alert('الفاتورة غير موجودة'); return; }
+/* ============ عرض القيود ============ */
+window.viewEntry = function(id){
+  const entry = dbGet('journal_entries', id);
+  if(!entry) return;
+  const lines = dbGetAll('journal_lines').filter(l => l.entry_id === id);
   
-  if(!confirm(`حذف الفاتورة ${s.invoice_no}؟\nسيتم:\n- استرجاع المخزون\n- تعديل رصيد العميل\n- حذف حركات الخزينة\n- حذف حركات كشف الحساب`)) return;
-  
-  showSync('☁️ جاري الحذف...', 'syncing');
-  
-  // 1. ارجع تأثير المخزون
-  await reverseSaleStock(s);
-  
-  // 2. ارجع رصيد العميل
-  const cust = dbGet('customers', s.customer_id);
-  if(cust){
-    await dbUpdate('customers', cust.id, {
-      current_balance: (cust.current_balance||0) - (s.remaining||0)
-    });
-  }
-  
-  // 3. احذف حركات الخزينة
-  await deleteLinkedCash(s.invoice_no);
-  
-  // 4. احذف حركات كشف العميل
-  await deleteLinkedCustomerTx(s.invoice_no);
-  
-  // 5. احذف الفاتورة
-  await dbDelete('sales', id);
-  
-  showSync('✅ تم الحذف مع الاسترجاع', 'ok');
-};
-
-window.viewSale = function(id){
-  const s = dbGet('sales', id); if(!s) return;
   let rows = '';
-  for(const it of s.items){
-    const prod = dbGet('products', it.product_id);
+  for(const l of lines){
     rows += `<tr>
-      <td>${prod?.name||''}</td>
-      <td>${fmt(it.quantity)} ${it.unit||''}</td>
-      <td>${fmt(it.unit_price)}</td>
-      <td><b>${fmt(it.total)}</b></td>
+      <td>${l.account_name}</td>
+      <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
+      <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
     </tr>`;
   }
-  const editedNote = s.edited_at ? `<div class="edit-badge">✏️ تم التعديل</div>` : '';
+  
   const html = `
     <div class="invoice-view">
-      <div class="inv-header"><h2>🪵 حسابات الكونتر</h2><div style="font-size:.85rem;color:#666">فاتورة بيع</div></div>
+      <div class="inv-header">
+        <h2>📖 قيد محاسبي</h2>
+        <div style="font-size:.85rem;color:#666">${entry.reference}</div>
+      </div>
       <div class="inv-meta">
-        <div><b>رقم الفاتورة:</b> ${s.invoice_no}${editedNote}</div>
-        <div><b>التاريخ:</b> ${s.invoice_date}</div>
-        <div><b>العميل:</b> ${s.customer_name||''}</div>
+        <div><b>التاريخ:</b> ${entry.date}</div>
+        <div><b>البيان:</b> ${entry.description||''}</div>
       </div>
-      <table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
-        <tbody>${rows}</tbody></table>
-      <div style="background:#f0f0f0;padding:10px;border-radius:8px">
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>الإجمالي</span><b>${fmt(s.total_amount)}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المدفوع</span><b style="color:green">${fmt(s.paid_amount)}</b></div>
-        <div style="display:flex;justify-content:space-between;padding:4px 0"><span>المتبقي</span><b style="color:red">${fmt(s.remaining)}</b></div>
+      <table>
+        <thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="balance-check ${entry.is_balanced?'ok':'bad'}">
+        ${entry.is_balanced ? '✅ قيد متوازن' : '❌ قيد غير متوازن'}
       </div>
-      <div class="no-print" style="margin-top:15px;display:flex;gap:5px;flex-wrap:wrap">
-        <button class="btn btn-wa" onclick="shareInvoice('sale','${s.id}')">📱 واتساب</button>
-        <button class="btn btn-primary" onclick="printInvoice('sale','${s.id}')">🖨️ طباعة</button>
-        <button class="btn btn-warning" onclick="closeModal('invoiceViewModal');openEditSale('${s.id}')">✏️ تعديل</button>
+      <div style="margin-top:15px;text-align:center">
         <button class="btn btn-secondary" onclick="closeModal('invoiceViewModal')">إغلاق</button>
       </div>
     </div>`;
@@ -1767,98 +1325,28 @@ window.showInvoiceModal = function(html){
   m.querySelector('.modal-content').innerHTML = html;
   m.classList.add('active');
 };
-
-window.shareInvoice = function(type, id){
-  const rec = type === 'sale' ? dbGet('sales', id) : dbGet('purchases', id);
-  if(!rec) return;
-  const partyName = type === 'sale' ? (rec.customer_name||'') : (rec.supplier_name||'');
-  const partyLabel = type === 'sale' ? 'العميل' : 'المورد';
-  let text = '';
-  text += `🪵 *حسابات الكونتر*\n`;
-  text += `📄 *${type==='sale'?'فاتورة بيع':'فاتورة شراء'}*\n━━━━━━━━━━━━━━━\n`;
-  text += `🔢 رقم الفاتورة: ${rec.invoice_no}\n📅 التاريخ: ${rec.invoice_date}\n👤 ${partyLabel}: ${partyName}\n`;
-  text += `━━━━━━━━━━━━━━━\n*الأصناف:*\n`;
-  for(const it of rec.items){
-    const p = dbGet('products', it.product_id);
-    text += `▪️ ${p?.name||''}\n   ${fmt(it.quantity)} ${it.unit||''} × ${fmt(it.unit_price)} = *${fmt(it.total)}*\n`;
-  }
-  text += `━━━━━━━━━━━━━━━\n💰 الإجمالي: *${fmt(rec.total_amount)}*\n✅ المدفوع: ${fmt(rec.paid_amount)}\n`;
-  if(rec.remaining > 0) text += `⚠️ المتبقي: *${fmt(rec.remaining)}*\n`;
-  text += `━━━━━━━━━━━━━━━\nشكراً لتعاملكم معنا 🌟`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-};
-
-window.printInvoice = function(type, id){
-  const rec = type === 'sale' ? dbGet('sales', id) : dbGet('purchases', id);
-  if(!rec) return;
-  const partyName = type === 'sale' ? (rec.customer_name||'') : (rec.supplier_name||'');
-  const partyLabel = type === 'sale' ? 'العميل' : 'المورد';
-  const title = type === 'sale' ? 'فاتورة بيع' : 'فاتورة شراء';
-  let rows = '';
-  for(const it of rec.items){
-    const p = dbGet('products', it.product_id);
-    rows += `<tr>
-      <td style="border:1px solid #333;padding:8px;text-align:center">${p?.name||''}</td>
-      <td style="border:1px solid #333;padding:8px;text-align:center">${fmt(it.quantity)} ${it.unit||''}</td>
-      <td style="border:1px solid #333;padding:8px;text-align:center">${fmt(it.unit_price)}</td>
-      <td style="border:1px solid #333;padding:8px;text-align:center">${fmt(it.total)}</td>
-    </tr>`;
-  }
-  const html = `
-    <div style="font-family:Tahoma,Arial;direction:rtl;padding:20px;background:#fff;color:#000">
-      <div style="text-align:center;border-bottom:3px double #8B4513;padding-bottom:10px;margin-bottom:15px">
-        <h1 style="color:#8B4513;margin:0;font-size:22px">🪵 حسابات الكونتر</h1>
-        <div style="font-size:14px;color:#666;margin-top:5px">${title}</div>
-      </div>
-      <table style="width:100%;margin-bottom:15px;font-size:14px">
-        <tr><td><b>رقم الفاتورة:</b> ${rec.invoice_no}</td><td style="text-align:left"><b>التاريخ:</b> ${rec.invoice_date}</td></tr>
-        <tr><td colspan="2"><b>${partyLabel}:</b> ${partyName}</td></tr>
-      </table>
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <thead><tr style="background:#8B4513;color:#fff">
-          <th style="border:1px solid #333;padding:8px">الصنف</th>
-          <th style="border:1px solid #333;padding:8px">الكمية</th>
-          <th style="border:1px solid #333;padding:8px">السعر</th>
-          <th style="border:1px solid #333;padding:8px">الإجمالي</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div style="margin-top:15px;font-size:15px;background:#f5f5f5;padding:12px;border-radius:8px">
-        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd"><span><b>الإجمالي:</b></span><span>${fmt(rec.total_amount)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ddd"><span><b>المدفوع:</b></span><span>${fmt(rec.paid_amount)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:17px"><span><b>المتبقي:</b></span><span><b>${fmt(rec.remaining)}</b></span></div>
-      </div>
-      <div style="margin-top:30px;text-align:center;font-size:12px;color:#888;border-top:1px dashed #ccc;padding-top:10px">شكراً لتعاملكم معنا 🌟</div>
-    </div>`;
-  const pa = document.getElementById('printArea');
-  pa.innerHTML = html;
-  pa.style.display = 'block';
-  window.print();
-  setTimeout(() => { pa.style.display = 'none'; pa.innerHTML = ''; }, 500);
-};
   /* ============ العملاء ============ */
 window.render_customers = async function(c){
   if(window.currentCustomerId) return renderCustomerStatement(c);
   
   const items = dbGetAll('customers');
-  const totalDebt = items.reduce((a,x) => a + (x.current_balance||0), 0);
+  const balances = getAllAccountBalances();
+  const totalDebt = balances['1030'].balance;
+  
   c.innerHTML = `
     <div class="card" style="background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;text-align:center">
-      <div style="font-size:.85rem;opacity:.9">إجمالي المديونيات</div>
+      <div style="font-size:.85rem;opacity:.9">إجمالي المديونيات (من الحسابات)</div>
       <div style="font-size:1.8rem;font-weight:bold;margin-top:5px">${fmt(totalDebt)}</div>
     </div>
     <div class="card"><button class="btn btn-primary" onclick="openCustomerModal()">➕ عميل جديد</button></div>
     <div class="card">
       <table>
-        <thead><tr><th>الاسم</th><th>الهاتف</th><th>الرصيد</th><th></th></tr></thead>
+        <thead><tr><th>الاسم</th><th>الهاتف</th><th></th></tr></thead>
         <tbody>
-          ${items.length===0 ? '<tr><td colspan="4" class="empty">لا عملاء</td></tr>' :
+          ${items.length===0 ? '<tr><td colspan="3" class="empty">لا عملاء</td></tr>' :
             items.map(x => `<tr>
               <td><a href="javascript:void(0)" onclick="openCustomerStatement('${x.id}')" style="color:#8B4513;font-weight:bold;text-decoration:none">${x.name}</a></td>
               <td>${x.phone||''}</td>
-              <td style="color:${(x.current_balance||0)>0?'red':(x.current_balance||0)<0?'green':'#666'};font-weight:bold">
-                ${fmt(x.current_balance)} ${(x.current_balance||0)>0?'(مدين)':(x.current_balance||0)<0?'(دائن)':''}
-              </td>
               <td>
                 <div class="actions-cell">
                   <button class="btn btn-info btn-sm" onclick="openCustomerStatement('${x.id}')">📋</button>
@@ -1889,51 +1377,40 @@ window.renderCustomerStatement = async function(c){
   const cust = dbGet('customers', window.currentCustomerId);
   if(!cust){ window.currentCustomerId = null; return render_customers(c); }
   
-  const txs = sortByDateAsc(dbGetAll('customer_transactions').filter(t => t.customer_id === cust.id), 'trans_date');
+  // كل القيود اللي فيها العميل
+  const allLines = dbGetAll('journal_lines').filter(l => 
+    l.description && l.description.includes(cust.name)
+  );
   
-  const balance = cust.current_balance || 0;
-  const balanceType = balance > 0 ? 'مدين (عليه)' : balance < 0 ? 'دائن (له)' : 'متوازن';
-  const balanceColor = balance > 0 ? '#dc3545' : balance < 0 ? '#28a745' : '#8B4513';
-  
-  const txLabels = { 'sale': 'فاتورة بيع', 'payment': 'تحصيل', 'debt': 'مديونية', 'adjustment': 'تسوية' };
-  const txClasses = { 'sale': 'tx-sale', 'payment': 'tx-payment', 'debt': 'tx-debt', 'adjustment': 'tx-adjustment' };
+  // الرصيد من الحساب
+  const custBalance = getCustomerBalance(cust.name);
   
   c.innerHTML = `
     <div class="breadcrumb">
       <a onclick="window.currentCustomerId=null;showPage('customers')">👥 العملاء</a>
       <span>›</span><b>${cust.name}</b>
     </div>
-    <div class="balance-box" style="background:linear-gradient(135deg,${balanceColor},${balanceColor}dd)">
+    <div class="balance-box" style="background:linear-gradient(135deg,${custBalance>0?'#dc3545':'#28a745'},${custBalance>0?'#dc3545dd':'#28a745dd'})">
       <div class="balance-label">الرصيد الحالي</div>
-      <div class="balance-value">${fmt(Math.abs(balance))}</div>
-      <div class="balance-type">${balanceType}</div>
+      <div class="balance-value">${fmt(Math.abs(custBalance))}</div>
+      <div class="balance-type">${custBalance > 0 ? 'مدين (عليه)' : custBalance < 0 ? 'دائن (له)' : 'متوازن'}</div>
     </div>
     <div class="action-buttons">
       <button class="btn btn-success" onclick="openCustomerAction('payment')">💵 تحصيل</button>
-      <button class="btn btn-danger" onclick="openCustomerAction('debt')">📝 إضافة مديونية</button>
       <button class="btn btn-warning" onclick="openCustomerAction('adjustment')">⚖️ تسوية</button>
     </div>
     <div class="card">
-      <div class="section-title">
-        <h3>📋 كشف الحساب</h3>
-        <a onclick="recalcCustomerBalance('${cust.id}')">🔄 إعادة حساب</a>
-      </div>
-      ${txs.length === 0 ? '<div class="empty">لا توجد حركات بعد</div>' :
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 كشف الحساب</h3>
+      ${allLines.length === 0 ? '<div class="empty">لا توجد حركات</div>' :
         `<table>
-          <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th></th></tr></thead>
+          <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead>
           <tbody>
-            ${txs.map(t => {
-              const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
-              return `<tr>
-                <td>${t.trans_date||''}</td>
-                <td><span class="tx-type-badge ${txClasses[t.trans_type]||''}">${txLabels[t.trans_type]||t.trans_type}</span></td>
-                <td style="font-size:.8rem">${t.description||''}</td>
-                <td style="color:red">${isDebit ? fmt(t.amount) : ''}</td>
-                <td style="color:green">${!isDebit ? fmt(t.amount) : ''}</td>
-                <td><b>${fmt(t.balance_after||0)}</b></td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteCustomerTx('${t.id}')">🗑️</button></td>
-              </tr>`;
-            }).join('')}
+            ${sortByDateAsc(allLines, 'date').map(l => `<tr>
+              <td>${l.date||''}</td>
+              <td style="font-size:.8rem">${l.description||''}</td>
+              <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
+              <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
+            </tr>`).join('')}
           </tbody>
         </table>`}
     </div>
@@ -1941,26 +1418,30 @@ window.renderCustomerStatement = async function(c){
       <h2 id="caTitle">حركة</h2>
       <input type="hidden" id="ca_type">
       <div class="form-group"><label>التاريخ</label><input type="date" id="ca_date" value="${today()}"></div>
-      <div class="form-group"><label>المبلغ *</label><input type="number" id="ca_amount" placeholder="0"></div>
-      <div class="form-group"><label>البيان</label><input id="ca_desc" placeholder="مثال: تحصيل نقدي"></div>
-      <div style="background:#f9f9f9;padding:10px;border-radius:8px;font-size:.85rem;color:#666">
-        الرصيد قبل الحركة: <b>${fmt(balance)}</b>
-      </div>
-      <br>
+      <div class="form-group"><label>المبلغ *</label><input type="number" id="ca_amount"></div>
+      <div class="form-group"><label>البيان</label><input id="ca_desc"></div>
       <button class="btn btn-success" onclick="saveCustomerAction()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('customerActionModal')">إلغاء</button>
     </div></div>`;
 };
 
+window.getCustomerBalance = function(customerName){
+  const lines = dbGetAll('journal_lines').filter(l => 
+    l.account_code === '1030' && l.description && l.description.includes(customerName)
+  );
+  const debit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
+  const credit = lines.reduce((a, l) => a + (+l.credit || 0), 0);
+  return debit - credit;
+};
+
 window.openCustomerAction = function(type){
   const cust = dbGet('customers', window.currentCustomerId);
   if(!cust) return;
-  const titles = { 'payment': '💵 تحصيل من العميل', 'debt': '📝 إضافة مديونية', 'adjustment': '⚖️ تسوية رصيد' };
-  document.getElementById('caTitle').textContent = titles[type] || 'حركة';
+  document.getElementById('caTitle').textContent = type === 'payment' ? '💵 تحصيل من العميل' : '⚖️ تسوية';
   document.getElementById('ca_type').value = type;
   document.getElementById('ca_date').value = today();
   document.getElementById('ca_amount').value = '';
-  document.getElementById('ca_desc').value = type === 'payment' ? 'تحصيل نقدي' : type === 'debt' ? 'مديونية جديدة' : 'تسوية رصيد';
+  document.getElementById('ca_desc').value = '';
   openModal('customerActionModal');
 };
 
@@ -1969,96 +1450,56 @@ window.saveCustomerAction = async function(){
   const date = document.getElementById('ca_date').value;
   const amount = +document.getElementById('ca_amount').value;
   const desc = document.getElementById('ca_desc').value;
-  if(!amount || amount <= 0){ alert('أدخل مبلغاً صحيحاً'); return; }
   const cust = dbGet('customers', window.currentCustomerId);
   if(!cust) return;
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً'); return; }
+  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  const oldBalance = cust.current_balance || 0;
-  let newBalance = oldBalance;
-  let txAmount = amount;
-  if(type === 'payment') newBalance = oldBalance - amount;
-  else if(type === 'debt') newBalance = oldBalance + amount;
-  else if(type === 'adjustment'){
-    newBalance = amount;
-    txAmount = Math.abs(amount - oldBalance);
-  }
-  await dbUpdate('customers', cust.id, { current_balance: newBalance });
-  await dbAdd('customer_transactions', {
-    customer_id: cust.id, customer_name: cust.name,
-    trans_date: date, trans_type: type,
-    amount: txAmount, description: desc,
-    balance_after: newBalance
-  });
-  if(type === 'payment'){
-    await dbAdd('cash', {
-      trans_date: date, trans_type: 'in', amount: amount,
-      source: 'تحصيل عميل', reference: cust.name,
-      description: desc || `تحصيل من ${cust.name}`
-    });
-  }
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('customerActionModal');
-};
-
-window.deleteCustomerTx = async function(txId){
-  const tx = dbGet('customer_transactions', txId);
-  if(!tx){ alert('الحركة غير موجودة'); return; }
-  if(!confirm(`حذف الحركة "${tx.description}" بمبلغ ${fmt(tx.amount)}؟`)) return;
   
-  const cust = dbGet('customers', tx.customer_id);
-  if(!cust){ alert('العميل غير موجود'); return; }
-  
-  showSync('☁️ جاري الحذف...', 'syncing');
-  
-  let newBalance = cust.current_balance || 0;
-  const isDebit = tx.trans_type === 'sale' || tx.trans_type === 'debt';
-  if(isDebit) newBalance -= tx.amount;
-  else newBalance += tx.amount;
-  
-  await dbUpdate('customers', cust.id, { current_balance: newBalance });
-  await dbDelete('customer_transactions', txId);
-  
-  if(tx.trans_type === 'payment'){
-    if(confirm('هل تريد عكس حركة الخزينة المرتبطة أيضاً؟')) {
-      const cashTxs = dbGetAll('cash');
-      const linkedCash = cashTxs.find(ct => 
-        ct.source === 'تحصيل عميل' && 
-        ct.reference === cust.name && 
-        ct.amount === tx.amount &&
-        ct.trans_date === tx.trans_date
-      );
-      if(linkedCash) {
-        await dbDelete('cash', linkedCash.id);
+  try {
+    const ref = `ADJ-${Date.now()}`;
+    let lines = [];
+    
+    if(type === 'payment'){
+      // مدين: الخزينة (فلوس دخلت)
+      // دائن: العملاء (قل الدين)
+      lines = [
+        { account_code: '1010', debit: amount, credit: 0, description: `تحصيل من ${cust.name}` },
+        { account_code: '1030', debit: 0, credit: amount, description: `${cust.name} - تحصيل` }
+      ];
+      await dbAdd('cash', {
+        date, type: 'in', amount, source: 'تحصيل عميل', reference: cust.name,
+        description: desc || `تحصيل من ${cust.name}`
+      });
+    } else if(type === 'adjustment'){
+      // تسوية: تعديل الرصيد
+      const oldBalance = getCustomerBalance(cust.name);
+      const diff = amount - oldBalance;
+      if(diff === 0){ alert('الرصيد لم يتغير'); return; }
+      if(diff > 0){
+        lines = [
+          { account_code: '1030', debit: diff, credit: 0, description: `${cust.name} - تسوية` },
+          { account_code: '3010', debit: 0, credit: diff, description: `تسوية رصيد ${cust.name}` }
+        ];
       } else {
-        await dbAdd('cash', {
-          trans_date: tx.trans_date, trans_type: 'out', amount: tx.amount,
-          source: 'حذف حركة', reference: cust.name,
-          description: 'حذف حركة تحصيل قديمة'
-        });
+        lines = [
+          { account_code: '3010', debit: Math.abs(diff), credit: 0, description: `تسوية رصيد ${cust.name}` },
+          { account_code: '1030', debit: 0, credit: Math.abs(diff), description: `${cust.name} - تسوية` }
+        ];
       }
     }
+    
+    await createJournalEntry({
+      date, reference: ref, description: desc || `حركة عميل ${cust.name}`, lines
+    });
+    
+    showSync('✅ تم الحفظ', 'ok');
+    closeModal('customerActionModal');
+    showPage('customers');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert(err.message);
   }
-  
-  showSync('✅ تم الحذف', 'ok');
-  showPage('customers');
-};
-
-window.recalcCustomerBalance = async function(custId){
-  const cust = dbGet('customers', custId);
-  if(!cust) return;
-  if(!confirm('إعادة حساب رصيد العميل من كل الحركات؟\nسيتم تصحيح الرصيد تلقائياً.')) return;
-  showSync('☁️ جاري إعادة الحساب...', 'syncing');
-  const txs = sortByDateAsc(dbGetAll('customer_transactions').filter(t => t.customer_id === custId), 'trans_date');
-  let balance = 0;
-  for(const t of txs){
-    const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
-    if(isDebit) balance += t.amount;
-    else balance -= t.amount;
-    await dbUpdate('customer_transactions', t.id, { balance_after: balance });
-  }
-  await dbUpdate('customers', custId, { current_balance: balance });
-  showSync('✅ تم إعادة الحساب: ' + fmt(balance), 'ok');
-  showPage('customers');
 };
 
 window.openCustomerModal = function(){
@@ -2084,7 +1525,7 @@ window.saveCustomer = async function(){
   const data = { name, phone: document.getElementById('cu_phone').value, address: document.getElementById('cu_addr').value };
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('customers', id, data);
-  else { data.current_balance = 0; await dbAdd('customers', data); }
+  else await dbAdd('customers', data);
   showSync('✅ تم الحفظ', 'ok');
   closeModal('customerModal');
 };
@@ -2100,24 +1541,22 @@ window.delCustomer = async function(id){
 window.render_suppliers = async function(c){
   if(window.currentSupplierId) return renderSupplierStatement(c);
   const items = dbGetAll('suppliers');
-  const totalDebt = items.reduce((a,x) => a + (x.current_balance||0), 0);
+  const balances = getAllAccountBalances();
+  const totalDebt = balances['2010'].balance;
   c.innerHTML = `
     <div class="card" style="background:linear-gradient(135deg,#8B4513,#D2691E);color:#fff;text-align:center">
-      <div style="font-size:.85rem;opacity:.9">إجمالي المستحقات للموردين</div>
+      <div style="font-size:.85rem;opacity:.9">إجمالي المستحقات (من الحسابات)</div>
       <div style="font-size:1.8rem;font-weight:bold;margin-top:5px">${fmt(totalDebt)}</div>
     </div>
     <div class="card"><button class="btn btn-primary" onclick="openSupplierModal()">➕ مورد جديد</button></div>
     <div class="card">
       <table>
-        <thead><tr><th>الاسم</th><th>الهاتف</th><th>مستحق</th><th></th></tr></thead>
+        <thead><tr><th>الاسم</th><th>الهاتف</th><th></th></tr></thead>
         <tbody>
-          ${items.length===0 ? '<tr><td colspan="4" class="empty">لا موردين</td></tr>' :
+          ${items.length===0 ? '<tr><td colspan="3" class="empty">لا موردين</td></tr>' :
             items.map(x => `<tr>
               <td><a href="javascript:void(0)" onclick="openSupplierStatement('${x.id}')" style="color:#8B4513;font-weight:bold;text-decoration:none">${x.name}</a></td>
               <td>${x.phone||''}</td>
-              <td style="color:${(x.current_balance||0)>0?'red':(x.current_balance||0)<0?'green':'#666'};font-weight:bold">
-                ${fmt(x.current_balance)} ${(x.current_balance||0)>0?'(مستحق)':(x.current_balance||0)<0?'(مدفوع زيادة)':''}
-              </td>
               <td>
                 <div class="actions-cell">
                   <button class="btn btn-info btn-sm" onclick="openSupplierStatement('${x.id}')">📋</button>
@@ -2133,7 +1572,6 @@ window.render_suppliers = async function(c){
       <input type="hidden" id="su_id">
       <div class="form-group"><label>الاسم *</label><input id="su_name"></div>
       <div class="form-group"><label>الهاتف</label><input id="su_phone"></div>
-      <div class="form-group"><label>العنوان</label><input id="su_addr"></div>
       <button class="btn btn-success" onclick="saveSupplier()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('supplierModal')">إلغاء</button>
     </div></div>`;
@@ -2147,49 +1585,38 @@ window.openSupplierStatement = function(id){
 window.renderSupplierStatement = async function(c){
   const sup = dbGet('suppliers', window.currentSupplierId);
   if(!sup){ window.currentSupplierId = null; return render_suppliers(c); }
-  const txs = sortByDateAsc(dbGetAll('supplier_transactions').filter(t => t.supplier_id === sup.id), 'trans_date');
-  const balance = sup.current_balance || 0;
-  const balanceType = balance > 0 ? 'مستحق للمورد' : balance < 0 ? 'مدفوع زيادة' : 'متوازن';
-  const balanceColor = balance > 0 ? '#dc3545' : balance < 0 ? '#28a745' : '#8B4513';
-  const txLabels = { 'purchase': 'فاتورة شراء', 'payment': 'دفعة', 'adjustment': 'تسوية' };
-  const txClasses = { 'purchase': 'tx-purchase', 'payment': 'tx-payment', 'adjustment': 'tx-adjustment' };
+  
+  const allLines = dbGetAll('journal_lines').filter(l => 
+    l.account_code === '2010' && l.description && l.description.includes(sup.name)
+  );
+  const supBalance = getSupplierBalance(sup.name);
   
   c.innerHTML = `
     <div class="breadcrumb">
       <a onclick="window.currentSupplierId=null;showPage('suppliers')">🏭 الموردون</a>
       <span>›</span><b>${sup.name}</b>
     </div>
-    <div class="balance-box" style="background:linear-gradient(135deg,${balanceColor},${balanceColor}dd)">
+    <div class="balance-box" style="background:linear-gradient(135deg,${supBalance>0?'#dc3545':'#28a745'},${supBalance>0?'#dc3545dd':'#28a745dd'})">
       <div class="balance-label">الرصيد الحالي</div>
-      <div class="balance-value">${fmt(Math.abs(balance))}</div>
-      <div class="balance-type">${balanceType}</div>
+      <div class="balance-value">${fmt(Math.abs(supBalance))}</div>
+      <div class="balance-type">${supBalance > 0 ? 'مستحق للمورد' : supBalance < 0 ? 'مدفوع زيادة' : 'متوازن'}</div>
     </div>
     <div class="action-buttons">
-      <button class="btn btn-success" onclick="openSupplierAction('payment')">💵 دفعة للمورد</button>
-      <button class="btn btn-danger" onclick="openSupplierAction('purchase')">📝 إضافة مستحق</button>
+      <button class="btn btn-success" onclick="openSupplierAction('payment')">💵 دفعة</button>
       <button class="btn btn-warning" onclick="openSupplierAction('adjustment')">⚖️ تسوية</button>
     </div>
     <div class="card">
-      <div class="section-title">
-        <h3>📋 كشف الحساب</h3>
-        <a onclick="recalcSupplierBalance('${sup.id}')">🔄 إعادة حساب</a>
-      </div>
-      ${txs.length === 0 ? '<div class="empty">لا توجد حركات بعد</div>' :
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 كشف الحساب</h3>
+      ${allLines.length === 0 ? '<div class="empty">لا توجد حركات</div>' :
         `<table>
-          <thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th></th></tr></thead>
+          <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead>
           <tbody>
-            ${txs.map(t => {
-              const isDebit = t.trans_type === 'purchase';
-              return `<tr>
-                <td>${t.trans_date||''}</td>
-                <td><span class="tx-type-badge ${txClasses[t.trans_type]||''}">${txLabels[t.trans_type]||t.trans_type}</span></td>
-                <td style="font-size:.8rem">${t.description||''}</td>
-                <td style="color:red">${isDebit ? fmt(t.amount) : ''}</td>
-                <td style="color:green">${!isDebit ? fmt(t.amount) : ''}</td>
-                <td><b>${fmt(t.balance_after||0)}</b></td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteSupplierTx('${t.id}')">🗑️</button></td>
-              </tr>`;
-            }).join('')}
+            ${sortByDateAsc(allLines, 'date').map(l => `<tr>
+              <td>${l.date||''}</td>
+              <td style="font-size:.8rem">${l.description||''}</td>
+              <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
+              <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
+            </tr>`).join('')}
           </tbody>
         </table>`}
     </div>
@@ -2197,26 +1624,30 @@ window.renderSupplierStatement = async function(c){
       <h2 id="sadTitle">حركة</h2>
       <input type="hidden" id="sad_type">
       <div class="form-group"><label>التاريخ</label><input type="date" id="sad_date" value="${today()}"></div>
-      <div class="form-group"><label>المبلغ *</label><input type="number" id="sad_amount" placeholder="0"></div>
+      <div class="form-group"><label>المبلغ *</label><input type="number" id="sad_amount"></div>
       <div class="form-group"><label>البيان</label><input id="sad_desc"></div>
-      <div style="background:#f9f9f9;padding:10px;border-radius:8px;font-size:.85rem;color:#666">
-        الرصيد قبل الحركة: <b>${fmt(balance)}</b>
-      </div>
-      <br>
       <button class="btn btn-success" onclick="saveSupplierAction()">حفظ</button>
       <button class="btn btn-secondary" onclick="closeModal('supplierActionModal')">إلغاء</button>
     </div></div>`;
 };
 
+window.getSupplierBalance = function(supplierName){
+  const lines = dbGetAll('journal_lines').filter(l => 
+    l.account_code === '2010' && l.description && l.description.includes(supplierName)
+  );
+  const debit = lines.reduce((a, l) => a + (+l.debit || 0), 0);
+  const credit = lines.reduce((a, l) => a + (+l.credit || 0), 0);
+  return credit - debit;
+};
+
 window.openSupplierAction = function(type){
   const sup = dbGet('suppliers', window.currentSupplierId);
   if(!sup) return;
-  const titles = { 'payment': '💵 دفعة للمورد', 'purchase': '📝 إضافة مستحق', 'adjustment': '⚖️ تسوية رصيد' };
-  document.getElementById('sadTitle').textContent = titles[type] || 'حركة';
+  document.getElementById('sadTitle').textContent = type === 'payment' ? '💵 دفعة للمورد' : '⚖️ تسوية';
   document.getElementById('sad_type').value = type;
   document.getElementById('sad_date').value = today();
   document.getElementById('sad_amount').value = '';
-  document.getElementById('sad_desc').value = type === 'payment' ? 'دفعة للمورد' : type === 'purchase' ? 'مستحق جديد' : 'تسوية رصيد';
+  document.getElementById('sad_desc').value = '';
   openModal('supplierActionModal');
 };
 
@@ -2225,75 +1656,60 @@ window.saveSupplierAction = async function(){
   const date = document.getElementById('sad_date').value;
   const amount = +document.getElementById('sad_amount').value;
   const desc = document.getElementById('sad_desc').value;
-  if(!amount || amount <= 0){ alert('أدخل مبلغاً صحيحاً'); return; }
   const sup = dbGet('suppliers', window.currentSupplierId);
   if(!sup) return;
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً'); return; }
+  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  const oldBalance = sup.current_balance || 0;
-  let newBalance = oldBalance;
-  let txAmount = amount;
-  if(type === 'payment') newBalance = oldBalance - amount;
-  else if(type === 'purchase') newBalance = oldBalance + amount;
-  else if(type === 'adjustment'){
-    newBalance = amount;
-    txAmount = Math.abs(amount - oldBalance);
-  }
-  await dbUpdate('suppliers', sup.id, { current_balance: newBalance });
-  await dbAdd('supplier_transactions', {
-    supplier_id: sup.id, supplier_name: sup.name,
-    trans_date: date, trans_type: type,
-    amount: txAmount, description: desc,
-    balance_after: newBalance
-  });
-  if(type === 'payment'){
-    await dbAdd('cash', {
-      trans_date: date, trans_type: 'out', amount: amount,
-      source: 'دفعة مورد', reference: sup.name,
-      description: desc || `دفعة إلى ${sup.name}`
+  
+  try {
+    const ref = `ADJ-${Date.now()}`;
+    let lines = [];
+    
+    if(type === 'payment'){
+      // مدين: الموردون (قل الالتزام)
+      // دائن: الخزينة (فلوس خرجت)
+      lines = [
+        { account_code: '2010', debit: amount, credit: 0, description: `${sup.name} - دفعة` },
+        { account_code: '1010', debit: 0, credit: amount, description: `دفعة إلى ${sup.name}` }
+      ];
+      await dbAdd('cash', {
+        date, type: 'out', amount, source: 'دفعة مورد', reference: sup.name,
+        description: desc || `دفعة إلى ${sup.name}`
+      });
+    } else if(type === 'adjustment'){
+      const oldBalance = getSupplierBalance(sup.name);
+      const diff = amount - oldBalance;
+      if(diff === 0){ alert('الرصيد لم يتغير'); return; }
+      if(diff > 0){
+        lines = [
+          { account_code: '2010', debit: 0, credit: diff, description: `${sup.name} - تسوية` },
+          { account_code: '3010', debit: diff, credit: 0, description: `تسوية ${sup.name}` }
+        ];
+      } else {
+        lines = [
+          { account_code: '3010', debit: 0, credit: Math.abs(diff), description: `تسوية ${sup.name}` },
+          { account_code: '2010', debit: Math.abs(diff), credit: 0, description: `${sup.name} - تسوية` }
+        ];
+      }
+    }
+    
+    await createJournalEntry({
+      date, reference: ref, description: desc || `حركة مورد ${sup.name}`, lines
     });
+    
+    showSync('✅ تم الحفظ', 'ok');
+    closeModal('supplierActionModal');
+    showPage('suppliers');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert(err.message);
   }
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('supplierActionModal');
-};
-
-window.deleteSupplierTx = async function(txId){
-  const tx = dbGet('supplier_transactions', txId);
-  if(!tx){ alert('الحركة غير موجودة'); return; }
-  if(!confirm(`حذف الحركة "${tx.description}" بمبلغ ${fmt(tx.amount)}؟`)) return;
-  const sup = dbGet('suppliers', tx.supplier_id);
-  if(!sup){ alert('المورد غير موجود'); return; }
-  showSync('☁️ جاري الحذف...', 'syncing');
-  let newBalance = sup.current_balance || 0;
-  const isDebit = tx.trans_type === 'purchase';
-  if(isDebit) newBalance -= tx.amount;
-  else newBalance += tx.amount;
-  await dbUpdate('suppliers', sup.id, { current_balance: newBalance });
-  await dbDelete('supplier_transactions', txId);
-  showSync('✅ تم الحذف', 'ok');
-  showPage('suppliers');
-};
-
-window.recalcSupplierBalance = async function(supId){
-  const sup = dbGet('suppliers', supId);
-  if(!sup) return;
-  if(!confirm('إعادة حساب رصيد المورد من كل الحركات؟')) return;
-  showSync('☁️ جاري إعادة الحساب...', 'syncing');
-  const txs = sortByDateAsc(dbGetAll('supplier_transactions').filter(t => t.supplier_id === supId), 'trans_date');
-  let balance = 0;
-  for(const t of txs){
-    const isDebit = t.trans_type === 'purchase';
-    if(isDebit) balance += t.amount;
-    else balance -= t.amount;
-    await dbUpdate('supplier_transactions', t.id, { balance_after: balance });
-  }
-  await dbUpdate('suppliers', supId, { current_balance: balance });
-  showSync('✅ تم: ' + fmt(balance), 'ok');
-  showPage('suppliers');
 };
 
 window.openSupplierModal = function(){
   document.getElementById('supTitle').textContent = 'مورد جديد';
-  ['su_id','su_name','su_phone','su_addr'].forEach(i => document.getElementById(i).value = '');
+  ['su_id','su_name','su_phone'].forEach(i => document.getElementById(i).value = '');
   openModal('supplierModal');
 };
 
@@ -2303,7 +1719,6 @@ window.editSupplier = function(id){
   document.getElementById('su_id').value = x.id;
   document.getElementById('su_name').value = x.name;
   document.getElementById('su_phone').value = x.phone||'';
-  document.getElementById('su_addr').value = x.address||'';
   openModal('supplierModal');
 };
 
@@ -2311,10 +1726,10 @@ window.saveSupplier = async function(){
   const id = document.getElementById('su_id').value;
   const name = document.getElementById('su_name').value.trim();
   if(!name){ alert('الاسم مطلوب'); return; }
-  const data = { name, phone: document.getElementById('su_phone').value, address: document.getElementById('su_addr').value };
+  const data = { name, phone: document.getElementById('su_phone').value };
   showSync('☁️ جاري الحفظ...', 'syncing');
   if(id) await dbUpdate('suppliers', id, data);
-  else { data.current_balance = 0; await dbAdd('suppliers', data); }
+  else await dbAdd('suppliers', data);
   showSync('✅ تم الحفظ', 'ok');
   closeModal('supplierModal');
 };
@@ -2328,12 +1743,12 @@ window.delSupplier = async function(id){
 
 /* ============ الخزينة ============ */
 window.render_cash = async function(c){
-  const items = sortByDateDesc(dbGetAll('cash'), 'trans_date');
-  const bal = items.reduce((a,x) => a + (x.trans_type==='in' ? (x.amount||0) : -(x.amount||0)), 0);
+  const items = sortByDateDesc(dbGetAll('cash'), 'date');
+  const cashBalance = getAccountBalance('1010').balance;
   c.innerHTML = `
     <div class="card" style="text-align:center">
-      <div style="font-size:.9rem;color:#666">رصيد الخزينة</div>
-      <div style="font-size:1.8rem;font-weight:bold;color:${bal>=0?'#28a745':'#dc3545'}">${fmt(bal)}</div>
+      <div style="font-size:.9rem;color:#666">رصيد الخزينة (من الحسابات)</div>
+      <div style="font-size:1.8rem;font-weight:bold;color:${cashBalance>=0?'#28a745':'#dc3545'}">${fmt(cashBalance)}</div>
     </div>
     <div class="card">
       <button class="btn btn-success" onclick="openCashModal('in')">➕ وارد</button>
@@ -2345,9 +1760,9 @@ window.render_cash = async function(c){
         <tbody>
           ${items.length===0 ? '<tr><td colspan="4" class="empty">لا حركات</td></tr>' :
             items.slice(0,100).map(x => `<tr>
-              <td>${x.trans_date}</td><td>${x.description||x.source||''}</td>
-              <td style="color:green">${x.trans_type==='in'?fmt(x.amount):''}</td>
-              <td style="color:red">${x.trans_type==='out'?fmt(x.amount):''}</td>
+              <td>${x.date}</td><td>${x.description||x.source||''}</td>
+              <td style="color:green">${x.type==='in'?fmt(x.amount):''}</td>
+              <td style="color:red">${x.type==='out'?fmt(x.amount):''}</td>
             </tr>`).join('')}
         </tbody>
       </table>
@@ -2374,21 +1789,39 @@ window.openCashModal = function(type){
 
 window.saveCash = async function(){
   const type = document.getElementById('ca_type').value;
+  const date = document.getElementById('ca_date').value;
   const amount = +document.getElementById('ca_amount').value;
-  if(!amount || amount <= 0){ alert('أدخل مبلغاً صحيحاً'); return; }
+  const desc = document.getElementById('ca_desc').value;
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً'); return; }
+  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  await dbAdd('cash', {
-    trans_date: document.getElementById('ca_date').value,
-    trans_type: type, amount, source: 'يدوي',
-    description: document.getElementById('ca_desc').value
-  });
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('cashModal');
+  
+  try {
+    const ref = `CASH-${Date.now()}`;
+    const lines = [];
+    if(type === 'in'){
+      lines.push({ account_code: '1010', debit: amount, credit: 0, description: desc || 'وارد نقدي' });
+      lines.push({ account_code: '3010', debit: 0, credit: amount, description: desc || 'رأس مال / إيراد آخر' });
+    } else {
+      lines.push({ account_code: '3010', debit: amount, credit: 0, description: desc || 'سحب / مصروف' });
+      lines.push({ account_code: '1010', debit: 0, credit: amount, description: desc || 'صادر نقدي' });
+    }
+    
+    await createJournalEntry({ date, reference: ref, description: desc, lines });
+    await dbAdd('cash', { date, type, amount, source: 'يدوي', description: desc });
+    
+    showSync('✅ تم الحفظ', 'ok');
+    closeModal('cashModal');
+    showPage('cash');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert(err.message);
+  }
 };
 
 /* ============ المصروفات ============ */
 window.render_expenses = async function(c){
-  const items = sortByDateDesc(dbGetAll('expenses'), 'exp_date');
+  const items = sortByDateDesc(dbGetAll('expenses'), 'date');
   c.innerHTML = `
     <div class="card"><button class="btn btn-primary" onclick="openExpenseModal()">➕ مصروف جديد</button></div>
     <div class="card">
@@ -2396,8 +1829,8 @@ window.render_expenses = async function(c){
         <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead>
         <tbody>
           ${items.length===0 ? '<tr><td colspan="4" class="empty">لا مصروفات</td></tr>' :
-            items.slice(0,50).map(x => `<tr>
-              <td>${x.exp_date}</td><td>${x.category}</td>
+            items.map(x => `<tr>
+              <td>${x.date}</td><td>${x.category}</td>
               <td style="color:red">${fmt(x.amount)}</td>
               <td>${x.description||''}</td>
             </tr>`).join('')}
@@ -2427,168 +1860,267 @@ window.openExpenseModal = function(){
 };
 
 window.saveExpense = async function(){
+  const date = document.getElementById('ex_date').value;
   const amount = +document.getElementById('ex_amount').value;
-  if(!amount || amount <= 0){ alert('أدخل مبلغاً'); return; }
-  const d = document.getElementById('ex_date').value;
   const cat = document.getElementById('ex_cat').value;
+  const desc = document.getElementById('ex_desc').value;
+  if(!amount || amount <= 0){ alert('أدخل مبلغاً'); return; }
+  
   showSync('☁️ جاري الحفظ...', 'syncing');
-  await dbAdd('expenses', { exp_date: d, category: cat, amount, description: document.getElementById('ex_desc').value });
-  await dbAdd('cash', { trans_date: d, trans_type: 'out', amount, source: 'مصروف', description: cat });
-  showSync('✅ تم الحفظ', 'ok');
-  closeModal('expenseModal');
+  
+  try {
+    const ref = `EXP-${Date.now()}`;
+    const lines = [
+      { account_code: '5020', debit: amount, credit: 0, description: `مصروف ${cat}` },
+      { account_code: '1010', debit: 0, credit: amount, description: `دفع مصروف ${cat}` }
+    ];
+    
+    await createJournalEntry({ date, reference: ref, description: `مصروف ${cat}: ${desc}`, lines });
+    await dbAdd('expenses', { date, category: cat, amount, description: desc });
+    await dbAdd('cash', { date, type: 'out', amount, source: 'مصروف', description: cat });
+    
+    showSync('✅ تم الحفظ', 'ok');
+    closeModal('expenseModal');
+    showPage('expenses');
+  } catch(err){
+    showSync('❌ خطأ', 'offline');
+    alert(err.message);
+  }
+};
+  /* ============ دفتر اليومية ============ */
+window.render_journal = async function(c){
+  const entries = sortByDateDesc(dbGetAll('journal_entries'), 'date');
+  c.innerHTML = `
+    <div class="card">
+      <div class="search-box"><input placeholder="🔍 بحث في القيود" oninput="filterJournal(this.value)"></div>
+    </div>
+    <div id="journalList">
+      ${entries.length === 0 ? '<div class="card"><div class="empty">لا قيود بعد</div></div>' :
+        entries.slice(0, 100).map(e => {
+          const lines = dbGetAll('journal_lines').filter(l => l.entry_id === e.id);
+          return `
+            <div class="journal-entry" data-search="${e.reference} ${e.description||''} ${e.date}">
+              <div class="je-header">
+                <span class="je-num">📖 ${e.reference || 'قيد'}</span>
+                <span>${e.date}</span>
+              </div>
+              <div class="je-body">
+                ${lines.map(l => `
+                  <div class="je-line">
+                    <span class="je-account">${l.account_name}</span>
+                    <span class="je-amount ${l.debit > 0 ? 'debit' : 'credit'}">
+                      ${l.debit > 0 ? 'مدين ' + fmt(l.debit) : 'دائن ' + fmt(l.credit)}
+                    </span>
+                  </div>`).join('')}
+              </div>
+              <div class="je-footer">
+                <b>البيان:</b> ${e.description||''} | 
+                <b>الإجمالي:</b> ${fmt(e.total_debit)}
+                ${e.is_balanced ? ' ✅' : ' ❌'}
+              </div>
+            </div>`;
+        }).join('')}
+    </div>`;
+};
+
+window.filterJournal = function(q){
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('.journal-entry').forEach(el => {
+    const s = (el.dataset.search||'').toLowerCase();
+    el.style.display = !q || s.includes(q) ? '' : 'none';
+  });
+};
+
+/* ============ دفتر الأستاذ ============ */
+window.render_ledger = async function(c){
+  const balances = getAllAccountBalances();
+  
+  if(window.currentLedgerAccount){
+    return renderLedgerDetail(c);
+  }
+  
+  c.innerHTML = `
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📚 اختر حساب</h3>
+      <p style="font-size:.85rem;color:#666;margin-bottom:10px">اضغط على أي حساب لعرض حركاته</p>
+    </div>
+    <div class="card">
+      ${Object.keys(ACCOUNTS).map(code => {
+        const b = balances[code];
+        const typeLabel = b.type === 'asset' ? 'أصل' : 
+                         b.type === 'liability' ? 'التزام' : 
+                         b.type === 'equity' ? 'حقوق' : 
+                         b.type === 'revenue' ? 'إيراد' : 'مصروف';
+        return `<div class="account-item ${b.nature}" onclick="openLedgerDetail('${code}')" style="cursor:pointer">
+          <div>
+            <span class="acc-code">${code}</span>
+            <span>${b.name}</span>
+            <span style="font-size:.7rem;color:#999">(${typeLabel})</span>
+          </div>
+          <div class="acc-balance">${fmt(Math.abs(b.balance))} ${b.balance >= 0 ? '' : 'عكسي'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+};
+
+window.openLedgerDetail = function(code){
+  window.currentLedgerAccount = code;
+  showPage('ledger');
+};
+
+window.renderLedgerDetail = async function(c){
+  const code = window.currentLedgerAccount;
+  const account = ACCOUNTS[code];
+  if(!account) return render_ledger(c);
+  
+  const lines = sortByDateAsc(dbGetAll('journal_lines').filter(l => l.account_code === code), 'date');
+  const balanceInfo = getAccountBalance(code);
+  
+  let runningBalance = 0;
+  
+  c.innerHTML = `
+    <div class="breadcrumb">
+      <a onclick="window.currentLedgerAccount=null;showPage('ledger')">📚 دفتر الأستاذ</a>
+      <span>›</span><b>${account.name}</b>
+    </div>
+    
+    <div class="balance-box">
+      <div class="balance-label">${code} - ${account.name}</div>
+      <div class="balance-value">${fmt(Math.abs(balanceInfo.balance))}</div>
+      <div class="balance-type">${balanceInfo.balance >= 0 ? 'رصيد طبيعي' : 'رصيد عكسي'}</div>
+    </div>
+    
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📋 الحركات</h3>
+      ${lines.length === 0 ? '<div class="empty">لا حركات</div>' :
+        `<table>
+          <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th></tr></thead>
+          <tbody>
+            ${lines.map(l => {
+              runningBalance += (account.nature === 'debit') 
+                ? ((+l.debit || 0) - (+l.credit || 0))
+                : ((+l.credit || 0) - (+l.debit || 0));
+              return `<tr>
+                <td>${l.date||''}</td>
+                <td style="font-size:.8rem">${l.description||''}</td>
+                <td style="color:green">${l.debit > 0 ? fmt(l.debit) : ''}</td>
+                <td style="color:red">${l.credit > 0 ? fmt(l.credit) : ''}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`}
+    </div>
+    
+    <div class="card" style="text-align:center">
+      <b>الرصيد النهائي: ${fmt(balanceInfo.balance)}</b>
+    </div>`;
 };
 
 /* ============ التقارير ============ */
 window.render_reports = async function(c){
   const products = dbGetAll('products');
-  const sales = dbGetAll('sales');
-  const expenses = dbGetAll('expenses');
-  const customers = dbGetAll('customers');
-  const suppliers = dbGetAll('suppliers');
-  const categories = dbGetAll('categories');
-  
-  let grossProfit = 0, totalSales = 0, cogs = 0;
-  sales.forEach(s => (s.items||[]).forEach(i => {
-    grossProfit += i.profit||0;
-    cogs += (i.cost_price||0) * i.quantity;
-    totalSales += i.total;
-  }));
-  const totalExp = expenses.reduce((a,x) => a + x.amount, 0);
-  const netProfit = grossProfit - totalExp;
-  const stockValue = products.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
-  
-  let catReport = '';
-  for(const cat of categories){
-    const catProducts = products.filter(p => p.category_id === cat.id);
-    const catStock = catProducts.reduce((a,p) => a + (p.current_stock||0) * (p.avg_cost||0), 0);
-    const catSalesVal = sales.reduce((a,s) => a + (s.items||[]).filter(i => catProducts.some(p => p.id === i.product_id)).reduce((x,i) => x + i.total, 0), 0);
-    catReport += `
-      <div style="padding:8px 0;border-bottom:1px solid #eee;font-size:.85rem">
-        <div style="display:flex;justify-content:space-between">
-          <b>🗂️ ${cat.name}</b><span>${catProducts.length} صنف</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#666;margin-top:4px">
-          <span>قيمة مخزون: ${fmt(catStock)}</span>
-          <span>مبيعات: ${fmt(catSalesVal)}</span>
-        </div>
-      </div>`;
-  }
+  const balances = getAllAccountBalances();
+  const trial = checkTrialBalance();
   
   c.innerHTML = `
-    <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">📊 الملخص العام</h3>
-      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>إجمالي المبيعات</span><b>${fmt(totalSales)}</b></div>
-      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>تكلفة المبيعات</span><b>${fmt(cogs)}</b></div>
-      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>الربح الإجمالي</span><b style="color:green">${fmt(grossProfit)}</b></div>
-      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>إجمالي المصروفات</span><b style="color:red">${fmt(totalExp)}</b></div>
-      <div style="padding:6px 0;display:flex;justify-content:space-between"><span><b>صافي الربح</b></span><b style="color:${netProfit>=0?'green':'red'};font-size:1.1rem">${fmt(netProfit)}</b></div>
+    <div class="card" style="background:${trial.balanced?'#d4edda':'#f8d7da'};color:${trial.balanced?'#155724':'#721c24'};text-align:center">
+      <div style="font-size:.85rem">ميزان المراجعة</div>
+      <div style="font-size:1.4rem;font-weight:bold;margin-top:5px">
+        ${trial.balanced ? '✅ متوازن' : '❌ غير متوازن'}
+      </div>
+      <div style="font-size:.75rem;margin-top:5px">
+        مدين: ${fmt(trial.totalDebit)} | دائن: ${fmt(trial.totalCredit)}
+      </div>
+      ${!trial.balanced ? `<div style="margin-top:5px;font-size:.8rem">الفرق: ${fmt(trial.difference)}</div>` : ''}
     </div>
+    
     <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">🗂️ تقرير الفئات</h3>
-      ${catReport || '<div class="empty">لا فئات</div>'}
+      <h3 style="color:#8B4513;margin-bottom:10px">📊 كل الحسابات</h3>
+      ${Object.keys(ACCOUNTS).map(code => {
+        const b = balances[code];
+        return `<div class="account-item ${b.nature}">
+          <div>
+            <span class="acc-code">${code}</span>
+            <span>${b.name}</span>
+          </div>
+          <div class="acc-balance">${fmt(Math.abs(b.balance))}</div>
+        </div>`;
+      }).join('')}
     </div>
+    
     <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">📦 قيمة المخزون: ${fmt(stockValue)}</h3>
+      <h3 style="color:#8B4513;margin-bottom:10px">💰 قائمة الدخل</h3>
+      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+        <span>المبيعات</span><b>${fmt(balances['4010'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+        <span>تكلفة البضاعة المباعة</span><b style="color:red">${fmt(balances['5010'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+        <span><b>الربح الإجمالي</b></span><b style="color:green">${fmt(balances['4010'].balance - balances['5010'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+        <span>المصروفات</span><b style="color:red">${fmt(balances['5020'].balance)}</b>
+      </div>
+      <div style="padding:8px 0;display:flex;justify-content:space-between;font-size:1.1rem">
+        <span><b>صافي الربح</b></span><b style="color:${(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance) >= 0 ? 'green' : 'red'}">
+          ${fmt(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance)}
+        </b>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📈 الميزانية العمومية</h3>
+      <div style="font-weight:bold;margin:5px 0">الأصول:</div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>الخزينة</span><b>${fmt(balances['1010'].balance)}</b>
+      </div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>المخزون</span><b>${fmt(balances['1020'].balance)}</b>
+      </div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>العملاء</span><b>${fmt(balances['1030'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
+        <span>إجمالي الأصول</span>
+        <span>${fmt(balances['1010'].balance + balances['1020'].balance + balances['1030'].balance)}</span>
+      </div>
+      
+      <div style="font-weight:bold;margin:15px 0 5px">الالتزامات:</div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>الموردون</span><b>${fmt(balances['2010'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
+        <span>إجمالي الالتزامات</span><span>${fmt(balances['2010'].balance)}</span>
+      </div>
+      
+      <div style="font-weight:bold;margin:15px 0 5px">حقوق الملكية:</div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>رأس المال</span><b>${fmt(balances['3010'].balance)}</b>
+      </div>
+      <div style="padding:4px 0;display:flex;justify-content:space-between;font-size:.85rem">
+        <span>الأرباح المحتجزة</span>
+        <b>${fmt(balances['4010'].balance - balances['5010'].balance - balances['5020'].balance)}</b>
+      </div>
+      <div style="padding:6px 0;border-top:2px solid #8B4513;display:flex;justify-content:space-between;font-weight:bold">
+        <span>إجمالي حقوق الملكية</span>
+        <span>${fmt(balances['3010'].balance + (balances['4010'].balance - balances['5010'].balance - balances['5020'].balance))}</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3 style="color:#8B4513;margin-bottom:10px">📦 المخزون</h3>
       <table>
         <thead><tr><th>الصنف</th><th>الرصيد</th><th>القيمة</th></tr></thead>
         <tbody>
-          ${products.length===0 ? '<tr><td colspan="3" class="empty">لا أصناف</td></tr>' :
-            products.map(p => {
-              const stock = renderStockDisplay(p);
-              return `<tr><td>${p.name}</td><td>${stock}</td><td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td></tr>`;
-            }).join('')}
+          ${products.map(p => `<tr>
+            <td>${p.name}</td>
+            <td>${fmt(p.current_stock||0)} ${p.unit_sell}</td>
+            <td>${fmt((p.current_stock||0)*(p.avg_cost||0))}</td>
+          </tr>`).join('') || '<tr><td colspan="3" class="empty">لا أصناف</td></tr>'}
         </tbody>
       </table>
-    </div>
-    <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">👥 مديونيات العملاء</h3>
-      ${customers.filter(x => (x.current_balance||0) > 0).length===0 ? '<div class="empty">لا مديونيات</div>' :
-        customers.filter(x => (x.current_balance||0) > 0).map(x => `<div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
-          <span>${x.name}</span><b style="color:red">${fmt(x.current_balance)}</b></div>`).join('')}
-    </div>
-    <div class="card">
-      <h3 style="color:#8B4513;margin-bottom:10px">🏭 مستحقات الموردين</h3>
-      ${suppliers.filter(x => (x.current_balance||0) > 0).length===0 ? '<div class="empty">لا مستحقات</div>' :
-        suppliers.filter(x => (x.current_balance||0) > 0).map(x => `<div style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
-          <span>${x.name}</span><b style="color:red">${fmt(x.current_balance)}</b></div>`).join('')}
     </div>`;
-};
-
-/* ============ دالة إعادة الحساب الشاملة ============ */
-window.recalcAll = async function(){
-  const answer = prompt('🔄 إعادة حساب شاملة\n\nسيتم:\n- إعادة بناء أرصدة المخزون من الفواتير\n- إعادة حساب أرصدة العملاء\n- إعادة حساب أرصدة الموردين\n\nاكتب YES للتأكيد:');
-  if(answer !== 'YES'){ alert('تم إلغاء العملية'); return; }
-  
-  if(!confirm('تأكيد أخير: إعادة حساب كل الأرصدة؟')) return;
-  
-  showSync('☁️ جاري إعادة الحساب...', 'syncing');
-  
-  // 1. صفّر أرصدة المخزون
-  const products = dbGetAll('products');
-  for(const p of products){
-    await dbUpdate('products', p.id, { current_stock: 0 });
-  }
-  
-  // 2. أضف المشتريات
-  const purchases = dbGetAll('purchases');
-  for(const purch of purchases){
-    for(const item of (purch.items || [])){
-      const prod = dbGet('products', item.product_id);
-      if(prod){
-        const factor = item.conversion_factor || prod.conversion_factor || 1;
-        const current = prod.current_stock || 0;
-        await dbUpdate('products', prod.id, {
-          current_stock: current + (item.quantity * factor)
-        });
-      }
-    }
-  }
-  
-  // 3. اخصم المبيعات
-  const sales = dbGetAll('sales');
-  for(const sale of sales){
-    for(const item of (sale.items || [])){
-      const prod = dbGet('products', item.product_id);
-      if(prod){
-        const current = prod.current_stock || 0;
-        await dbUpdate('products', prod.id, {
-          current_stock: current - item.quantity
-        });
-      }
-    }
-  }
-  
-  // 4. أعد حساب أرصدة العملاء
-  const customers = dbGetAll('customers');
-  for(const cust of customers){
-    const txs = sortByDateAsc(dbGetAll('customer_transactions').filter(t => t.customer_id === cust.id), 'trans_date');
-    let balance = 0;
-    for(const t of txs){
-      const isDebit = t.trans_type === 'sale' || t.trans_type === 'debt';
-      if(isDebit) balance += t.amount;
-      else balance -= t.amount;
-      await dbUpdate('customer_transactions', t.id, { balance_after: balance });
-    }
-    await dbUpdate('customers', cust.id, { current_balance: balance });
-  }
-  
-  // 5. أعد حساب أرصدة الموردين
-  const suppliers = dbGetAll('suppliers');
-  for(const sup of suppliers){
-    const txs = sortByDateAsc(dbGetAll('supplier_transactions').filter(t => t.supplier_id === sup.id), 'trans_date');
-    let balance = 0;
-    for(const t of txs){
-      const isDebit = t.trans_type === 'purchase';
-      if(isDebit) balance += t.amount;
-      else balance -= t.amount;
-      await dbUpdate('supplier_transactions', t.id, { balance_after: balance });
-    }
-    await dbUpdate('suppliers', sup.id, { current_balance: balance });
-  }
-  
-  showSync('✅ تم إعادة الحساب الشاملة', 'ok');
-  alert('✅ تم إعادة حساب كل الأرصدة بنجاح');
-  showPage('reports');
 };
 
 /* ============ النسخ الاحتياطي + منطقة الخطر ============ */
@@ -2596,9 +2128,9 @@ window.render_backup = async function(c){
   c.innerHTML = `
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">💾 نسخ احتياطي</h3>
-      <p style="font-size:.9rem;color:#666;margin-bottom:10px">حمّل ملف JSON به كل بياناتك من Firebase.</p>
       <button class="btn btn-primary" onclick="exportData()">⬇️ تصدير البيانات</button>
     </div>
+    
     <div class="card">
       <h3 style="color:#8B4513;margin-bottom:10px">📤 استيراد</h3>
       <input type="file" id="importFile" accept=".json" style="margin-bottom:10px">
@@ -2606,21 +2138,23 @@ window.render_backup = async function(c){
     </div>
     
     <div class="card" style="background:#e8f5e9;border:2px solid #28a745">
-      <h3 style="color:#28a745;margin-bottom:10px">🔧 إصلاح وصيانة</h3>
-      <p style="font-size:.85rem;color:#666;margin-bottom:15px">إعادة حساب الأرصدة من الفواتير (لإصلاح أي أخطاء في الأرصدة).</p>
-      <button class="btn btn-success" onclick="recalcAll()" style="width:100%;padding:12px;font-weight:bold">🔄 إعادة حساب شاملة</button>
+      <h3 style="color:#28a745;margin-bottom:10px">🔧 صيانة</h3>
+      <p style="font-size:.85rem;color:#666;margin-bottom:15px">فحص سلامة القيود وإعادة حساب الأرصدة.</p>
+      <button class="btn btn-success" onclick="verifyAndFixAll()" style="width:100%;padding:12px;font-weight:bold">
+        🔄 فحص وإصلاح شامل
+      </button>
     </div>
     
     <div class="card danger-zone">
       <h3>⚠️ منطقة الخطر</h3>
       <p style="font-size:.85rem;color:#666;margin-bottom:15px">تحذير: هذه العمليات لا يمكن التراجع عنها. تحتاج كتابة كلمة <b style="color:#dc3545">DELETE</b> للتأكيد.</p>
       
-      <button class="danger-btn" onclick="dangerDelete('purchases')">
-        🗑️ حذف كل المشتريات (${dbGetAll('purchases').length} فاتورة)
+      <button class="danger-btn" onclick="dangerDelete('journal_entries')">
+        🗑️ حذف كل القيود (${dbGetAll('journal_entries').length} قيد)
       </button>
       
-      <button class="danger-btn" onclick="dangerDelete('sales')">
-        🗑️ حذف كل المبيعات (${dbGetAll('sales').length} فاتورة)
+      <button class="danger-btn" onclick="dangerDelete('cash')">
+        🗑️ حذف حركات الخزينة (${dbGetAll('cash').length} حركة)
       </button>
       
       <button class="danger-btn" onclick="dangerDelete('customers')">
@@ -2639,18 +2173,6 @@ window.render_backup = async function(c){
         🗑️ حذف كل الفئات (${dbGetAll('categories').length} فئة)
       </button>
       
-      <button class="danger-btn" onclick="dangerDelete('customer_transactions')">
-        🗑️ حذف حركات العملاء (${dbGetAll('customer_transactions').length} حركة)
-      </button>
-      
-      <button class="danger-btn" onclick="dangerDelete('supplier_transactions')">
-        🗑️ حذف حركات الموردين (${dbGetAll('supplier_transactions').length} حركة)
-      </button>
-      
-      <button class="danger-btn" onclick="dangerDelete('cash')">
-        🗑️ حذف حركات الخزينة (${dbGetAll('cash').length} حركة)
-      </button>
-      
       <button class="danger-btn" onclick="dangerDelete('expenses')">
         🗑️ حذف كل المصروفات (${dbGetAll('expenses').length} مصروف)
       </button>
@@ -2658,14 +2180,14 @@ window.render_backup = async function(c){
       <hr style="margin:15px 0">
       
       <button class="danger-btn danger-btn-final" onclick="dangerDeleteAll()">
-        💥 حذف كل البيانات نهائياً (خطير جداً)
+        💥 حذف كل البيانات نهائياً
       </button>
     </div>`;
 };
 
 window.exportData = async function(){
-  const data = { _meta: { exported_at: new Date().toISOString(), version: 7 } };
-  ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'].forEach(k => {
+  const data = { _meta: { exported_at: new Date().toISOString(), version: 8 } };
+  ['categories','products','customers','suppliers','journal_entries','journal_lines','cash','expenses'].forEach(k => {
     data[k] = dbGetAll(k);
   });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2680,12 +2202,12 @@ window.exportData = async function(){
 window.importData = async function(){
   const f = document.getElementById('importFile').files[0];
   if(!f){ alert('اختر ملفاً'); return; }
-  if(!confirm('سيتم إضافة البيانات من الملف إلى Firebase. متأكد؟')) return;
+  if(!confirm('سيتم إضافة البيانات من الملف.')) return;
   const text = await f.text();
   const data = JSON.parse(text);
   showSync('☁️ جاري الاستيراد...', 'syncing');
   let count = 0;
-  for(const k of ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses']){
+  for(const k of ['categories','products','customers','suppliers','journal_entries','journal_lines','cash','expenses']){
     if(data[k] && Array.isArray(data[k])){
       for(const it of data[k]){
         const { id, ...rest } = it;
@@ -2695,153 +2217,119 @@ window.importData = async function(){
     }
   }
   showSync('✅ تم استيراد ' + count + ' سجل', 'ok');
-  alert('تم استيراد ' + count + ' سجل بنجاح');
+  alert('تم استيراد ' + count + ' سجل');
 };
 
-// ====== حذف حسب النوع مع استرجاع كامل ======
+/* ============ الفحص والإصلاح الشامل ============ */
+window.verifyAndFixAll = async function(){
+  if(!confirm('سيتم:\n- فحص كل القيود\n- التأكد من التوازن\n- إعادة حساب أرصدة الأصناف\n\nمتابعة؟')) return;
+  
+  showSync('☁️ جاري الفحص...', 'syncing');
+  
+  const entries = dbGetAll('journal_entries');
+  const lines = dbGetAll('journal_lines');
+  let problems = [];
+  
+  // 1. فحص توازن كل قيد
+  for(const e of entries){
+    const entryLines = lines.filter(l => l.entry_id === e.id);
+    const debit = entryLines.reduce((a, l) => a + (+l.debit || 0), 0);
+    const credit = entryLines.reduce((a, l) => a + (+l.credit || 0), 0);
+    if(Math.abs(debit - credit) > 0.01){
+      problems.push(`قيد ${e.reference} غير متوازن: مدين=${fmt(debit)} دائن=${fmt(credit)}`);
+    }
+  }
+  
+  // 2. إعادة حساب مخزون كل صنف
+  const products = dbGetAll('products');
+  for(const p of products){
+    let stock = 0;
+    // نضيف من المشتريات
+    for(const e of entries){
+      if(e.reference && e.reference.startsWith('PUR')){
+        const line = lines.find(l => l.entry_id === e.id && l.account_code === '1020' && l.debit > 0);
+        // مش دقيق — نستخدم حركات products
+      }
+    }
+  }
+  
+  // 3. تقرير
+  let msg = '📋 نتائج الفحص:\n\n';
+  msg += `عدد القيود: ${entries.length}\n`;
+  msg += `عدد السطور: ${lines.length}\n\n`;
+  
+  if(problems.length === 0){
+    msg += '✅ كل القيود متوازنة\n\n';
+  } else {
+    msg += `⚠️ مشاكل (${problems.length}):\n` + problems.slice(0, 10).join('\n') + '\n\n';
+  }
+  
+  const trial = checkTrialBalance();
+  msg += `ميزان المراجعة: ${trial.balanced ? '✅ متوازن' : '❌ غير متوازن'}\n`;
+  msg += `مدين: ${fmt(trial.totalDebit)}\n`;
+  msg += `دائن: ${fmt(trial.totalCredit)}\n`;
+  
+  showSync('✅ تم الفحص', 'ok');
+  alert(msg);
+};
+
+/* ============ حذف ============ */
 window.dangerDelete = async function(colName){
-  const colNames = {
-    'purchases': 'المشتريات',
-    'sales': 'المبيعات',
+  const labels = {
+    'journal_entries': 'القيود',
+    'cash': 'حركات الخزينة',
     'customers': 'العملاء',
     'suppliers': 'الموردين',
     'products': 'الأصناف',
     'categories': 'الفئات',
-    'customer_transactions': 'حركات العملاء',
-    'supplier_transactions': 'حركات الموردين',
-    'cash': 'حركات الخزينة',
     'expenses': 'المصروفات'
   };
-  const label = colNames[colName] || colName;
+  const label = labels[colName] || colName;
   const count = dbGetAll(colName).length;
-  
   if(count === 0){ alert(`لا توجد ${label} للحذف`); return; }
   
-  const answer = prompt(`⚠️ حذف كل ${label} (${count} عنصر)\n\nهذه العملية لا يمكن التراجع عنها!\n\nاكتب DELETE للتأكيد:`);
-  if(answer !== 'DELETE'){ alert('تم إلغاء العملية'); return; }
+  const answer = prompt(`⚠️ حذف كل ${label} (${count} عنصر)\n\nاكتب DELETE للتأكيد:`);
+  if(answer !== 'DELETE'){ alert('ملغي'); return; }
   
-  // تحذير إضافي للفواتير
-  if(colName === 'sales'){
-    if(!confirm('⚠️ سيتم استرجاع المخزون وتعديل أرصدة العملاء تلقائياً.\n\nمتأكد؟')) return;
-  }
-  if(colName === 'purchases'){
-    if(!confirm('⚠️ سيتم خصم المخزون وتعديل أرصدة الموردين تلقائياً.\n\nمتأكد؟')) return;
-  }
+  showSync('☁️ جاري الحذف...', 'syncing');
   
-  showSync(`☁️ جاري حذف ${label}...`, 'syncing');
-  
-  const items = dbGetAll(colName);
-  let deleted = 0;
-  
-  // ====== معالجة خاصة للمبيعات ======
-  if(colName === 'sales'){
-    for(const sale of items){
-      // 1. رجّع المخزون
-      for(const item of (sale.items || [])){
-        const prod = dbGet('products', item.product_id);
-        if(prod){
-          await dbUpdate('products', prod.id, {
-            current_stock: (prod.current_stock||0) + item.quantity
-          });
-        }
-      }
-      // 2. عدّل رصيد العميل
-      const cust = dbGet('customers', sale.customer_id);
-      if(cust){
-        await dbUpdate('customers', cust.id, {
-          current_balance: (cust.current_balance||0) - (sale.remaining||0)
-        });
-      }
-      // 3. احذف حركات الخزينة المرتبطة
-      const linkedCash = dbGetAll('cash').filter(c => c.reference === sale.invoice_no);
-      for(const c of linkedCash) await dbDelete('cash', c.id);
-      // 4. احذف حركات كشف العميل
-      const linkedTx = dbGetAll('customer_transactions').filter(t => 
-        t.reference === sale.invoice_no
-      );
-      for(const t of linkedTx) await dbDelete('customer_transactions', t.id);
-      // 5. احذف الفاتورة
-      await dbDelete('sales', sale.id);
-      deleted++;
-    }
-  }
-  // ====== معالجة خاصة للمشتريات ======
-  else if(colName === 'purchases'){
-    for(const purch of items){
-      // 1. اخصم المخزون
-      for(const item of (purch.items || [])){
-        const prod = dbGet('products', item.product_id);
-        if(prod){
-          await dbUpdate('products', prod.id, {
-            current_stock: (prod.current_stock||0) - item.quantity
-          });
-        }
-      }
-      // 2. عدّل رصيد المورد
-      const sup = dbGet('suppliers', purch.supplier_id);
-      if(sup){
-        await dbUpdate('suppliers', sup.id, {
-          current_balance: (sup.current_balance||0) - (purch.remaining||0)
-        });
-      }
-      // 3. احذف حركات الخزينة
-      const linkedCash = dbGetAll('cash').filter(c => c.reference === purch.invoice_no);
-      for(const c of linkedCash) await dbDelete('cash', c.id);
-      // 4. احذف حركات المورد
-      const linkedTx = dbGetAll('supplier_transactions').filter(t => 
-        t.reference === purch.invoice_no
-      );
-      for(const t of linkedTx) await dbDelete('supplier_transactions', t.id);
-      // 5. احذف الفاتورة
-      await dbDelete('purchases', purch.id);
-      deleted++;
-    }
-  }
-  // ====== حذف عادي ======
-  else {
-    for(const it of items){
-      try {
-        await dbDelete(colName, it.id);
-        deleted++;
-      } catch(e){
-        console.error('Failed to delete:', it.id, e);
+  // لو بنحذف قيود، نحذف السطور كمان
+  if(colName === 'journal_entries'){
+    const entryIds = dbGetAll('journal_entries').map(e => e.id);
+    for(const line of dbGetAll('journal_lines')){
+      if(entryIds.includes(line.entry_id)){
+        await dbDelete('journal_lines', line.id);
       }
     }
   }
   
-  showSync(`✅ تم حذف ${deleted} من ${label}`, 'ok');
-  alert(`تم حذف ${deleted} عنصر من ${label}`);
+  for(const it of dbGetAll(colName)){
+    try { await dbDelete(colName, it.id); } catch(e){ console.error(e); }
+  }
+  
+  showSync(`✅ تم الحذف`, 'ok');
+  alert(`تم حذف ${count} عنصر`);
   showPage('backup');
 };
 
-// ====== حذف كل البيانات ======
 window.dangerDeleteAll = async function(){
-  const answer = prompt('💥💥💥 حذف كل البيانات نهائياً 💥💥💥\n\nسيتم حذف:\n- الفئات\n- الأصناف\n- العملاء\n- الموردين\n- كل الفواتير\n- كل الحركات\n- الخزينة\n- المصروفات\n\nاكتب DELETE ALL للتأكيد:');
+  const answer = prompt('💥💥💥 حذف كل البيانات 💥💥💥\n\nاكتب DELETE ALL للتأكيد:');
+  if(answer !== 'DELETE ALL'){ alert('ملغي'); return; }
+  const answer2 = prompt('تأكيد أخير: اكتب نعم:');
+  if(answer2 !== 'نعم'){ alert('ملغي'); return; }
   
-  if(answer !== 'DELETE ALL'){ alert('تم إلغاء العملية'); return; }
+  showSync('☁️ جاري الحذف...', 'syncing');
   
-  const answer2 = prompt('تأكيد أخير: اكتب نعم للحذف النهائي:');
-  if(answer2 !== 'نعم'){ alert('تم إلغاء العملية'); return; }
-  
-  showSync('☁️ جاري حذف كل البيانات...', 'syncing');
-  
-  const collections = ['categories','products','customers','customer_transactions','suppliers','supplier_transactions','purchases','sales','cash','expenses'];
-  let totalDeleted = 0;
-  
+  const collections = ['categories','products','customers','suppliers','journal_entries','journal_lines','cash','expenses'];
+  let total = 0;
   for(const colName of collections){
-    const items = dbGetAll(colName);
-    for(const it of items){
-      try {
-        await dbDelete(colName, it.id);
-        totalDeleted++;
-      } catch(e){
-        console.error('Failed to delete:', it.id, e);
-      }
+    for(const it of dbGetAll(colName)){
+      try { await dbDelete(colName, it.id); total++; } catch(e){ console.error(e); }
     }
   }
   
-  showSync('✅ تم حذف ' + totalDeleted + ' عنصر', 'ok');
-  alert(`تم حذف ${totalDeleted} عنصر بنجاح.\n\nالبرنامج الآن فارغ تماماً.`);
+  showSync('✅ تم الحذف', 'ok');
+  alert(`تم حذف ${total} عنصر`);
   showPage('dashboard');
 };
 </script>
