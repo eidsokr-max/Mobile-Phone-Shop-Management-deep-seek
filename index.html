@@ -84,6 +84,7 @@
             <button onclick="switchTab('suppliers')" id="btn-suppliers" class="nav-btn px-4 py-3 font-semibold text-sm border-b-2 transition">🚚 الموردين</button>
             <button onclick="switchTab('expenses')" id="btn-expenses" class="nav-btn px-4 py-3 font-semibold text-sm border-b-2 transition">💸 المصروفات</button>
             <button onclick="switchTab('reports')" id="btn-reports" class="nav-btn px-4 py-3 font-semibold text-sm border-b-2 transition">📊 التقارير</button>
+            <button onclick="switchTab('backup')" id="btn-backup" class="nav-btn px-4 py-3 font-semibold text-sm border-b-2 transition">💾 نسخة احتياطية</button>
         </div>
     </nav>
 
@@ -363,6 +364,99 @@
             </div>
         </section>
 
+                <!-- Backup -->
+        <section id="tab-backup" class="tab-content hidden space-y-4">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-6 rounded-xl shadow-md">
+                <h2 class="text-xl font-bold mb-2">💾 النسخ الاحتياطي والاستعادة</h2>
+                <p class="text-sm opacity-90">احفظ بياناتك واسترجعها في أي وقت</p>
+            </div>
+
+            <!-- إحصائيات -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-blue-600" id="bk-count-products">0</p>
+                    <p class="text-xs text-gray-500 mt-1">📦 أصناف</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-green-600" id="bk-count-customers">0</p>
+                    <p class="text-xs text-gray-500 mt-1">👥 عملاء</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-orange-600" id="bk-count-suppliers">0</p>
+                    <p class="text-xs text-gray-500 mt-1">🚚 موردين</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-purple-600" id="bk-count-invoices">0</p>
+                    <p class="text-xs text-gray-500 mt-1">🧾 فواتير</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-yellow-600" id="bk-count-payments">0</p>
+                    <p class="text-xs text-gray-500 mt-1">💰 دفعات</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm text-center">
+                    <p class="text-2xl font-bold text-red-600" id="bk-count-expenses">0</p>
+                    <p class="text-xs text-gray-500 mt-1">💸 مصروفات</p>
+                </div>
+            </div>
+
+            <!-- معلومات الحساب -->
+            <div class="bg-white p-4 rounded-xl shadow-sm">
+                <h3 class="font-bold mb-2 text-blue-600">👤 معلومات الحساب</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-gray-500">البريد:</span> <span id="bk-account-email" class="font-semibold">-</span></div>
+                    <div><span class="text-gray-500">UID:</span> <span id="bk-account-uid" class="font-mono text-xs">-</span></div>
+                    <div><span class="text-gray-500">المتجر:</span> <span id="bk-account-store" class="font-semibold">-</span></div>
+                    <div><span class="text-gray-500">آخر نسخة:</span> <span id="bk-last-backup" class="font-semibold">-</span></div>
+                </div>
+            </div>
+
+            <!-- الأزرار -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- تصدير -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-500">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📤</div>
+                        <h3 class="font-bold mb-1">تصدير البيانات</h3>
+                        <p class="text-xs text-gray-500 mb-3">احفظ نسخة من بياناتك</p>
+                        <button onclick="exportBackup()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold transition">تصدير الآن</button>
+                        <p class="text-xs text-gray-400 mt-2">ملف JSON</p>
+                    </div>
+                </div>
+
+                <!-- استيراد -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-blue-500">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📥</div>
+                        <h3 class="font-bold mb-1">استيراد البيانات</h3>
+                        <p class="text-xs text-gray-500 mb-3">استرجع نسخة محفوظة</p>
+                        <button onclick="importBackup()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition">استيراد ملف</button>
+                        <p class="text-xs text-gray-400 mt-2">من ملف JSON</p>
+                    </div>
+                </div>
+
+                <!-- حذف -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-red-500">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🗑️</div>
+                        <h3 class="font-bold mb-1">حذف كل البيانات</h3>
+                        <p class="text-xs text-gray-500 mb-3">امسح بيانات الحساب</p>
+                        <button onclick="deleteAllData()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition">حذف الكل</button>
+                        <p class="text-xs text-red-400 mt-2">⚠️ لا يمكن التراجع</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- معلومات -->
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <h3 class="font-bold mb-2 text-blue-700">💡 نصائح مهمة</h3>
+                <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li>خُذ نسخة احتياطية <strong>قبل أي تعديل كبير</strong></li>
+                    <li>احفظ الملف في <strong>Google Drive</strong> أو مكان آمن</li>
+                    <li>الاستيراد <strong>يضيف</strong> البيانات — لا يحذف الموجود</li>
+                    <li>الحذف <strong>نهائي</strong> — لا يمكن التراجع</li>
+                </ul>
+            </div>
+        </section>
         <!-- Settings -->
         <section id="tab-settings" class="tab-content hidden space-y-4">
             <div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl">
@@ -980,7 +1074,7 @@ function stopListeners() {
 }
 
 // ============ Navigation ============
-const NAV_TABS = ['dashboard','products','invoices','customers','suppliers','expenses','reports','settings'];
+const NAV_TABS = ['dashboard','products','invoices','customers','suppliers','expenses','reports','backup','settings'];
 function switchTab(tab) {
     NAV_TABS.forEach(t => {
         const el  = $('tab-' + t);
@@ -994,7 +1088,8 @@ function switchTab(tab) {
             if (btn) btn.className = "nav-btn px-4 py-3 font-semibold text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-600 transition";
         }
     });
-    if (tab === 'reports') setTimeout(generateReport, 100);
+        if (tab === 'reports') setTimeout(generateReport, 100);
+    if (tab === 'backup') setTimeout(renderBackupStats, 100);
 }
 
 // ============ Products ============
@@ -2082,6 +2177,299 @@ function generateReport() {
         `).join('');
 }
 
+// ============================================================
+// 💾 قسم النسخ الاحتياطي والاستعادة
+// ============================================================
+
+/**
+ * تحديث إحصائيات النسخ الاحتياطي
+ */
+function renderBackupStats() {
+    $('bk-count-products').textContent = products.length;
+    $('bk-count-customers').textContent = customers.length;
+    $('bk-count-suppliers').textContent = suppliers.length;
+    $('bk-count-invoices').textContent = invoices.length;
+    $('bk-count-payments').textContent = payments.length;
+    $('bk-count-expenses').textContent = expenses.length;
+
+    if (currentUser) {
+        $('bk-account-email').textContent = currentUser.email || '-';
+        $('bk-account-uid').textContent = currentUser.uid || '-';
+        $('bk-account-store').textContent = settings.storeName || 'متجري';
+    }
+
+    // آخر نسخة
+    const lastBackup = localStorage.getItem('lastBackupDate');
+    if (lastBackup) {
+        $('bk-last-backup').textContent = lastBackup;
+    }
+}
+
+/**
+ * تصدير كل البيانات إلى ملف JSON
+ */
+async function exportBackup() {
+    if (!currentUser) { showToast('يجب تسجيل الدخول', 'error'); return; }
+
+    const btn = event?.target;
+    if (btn) { btn.disabled = true; btn.textContent = 'جارٍ التصدير...'; }
+
+    try {
+        showToast('جارٍ تجميع البيانات...', 'info');
+
+        const backup = {
+            _meta: {
+                ownerEmail: currentUser.email,
+                ownerId: currentUser.uid,
+                exportedAt: new Date().toISOString(),
+                version: '2.0',
+                app: 'كناش ومخزن احترافي',
+                storeName: settings.storeName || ''
+            },
+            _stats: {}
+        };
+
+        // جمع البيانات من الذاكرة (لأنها محدَّثة بالفعل)
+        const collections = ['products', 'customers', 'suppliers', 'invoices', 'payments', 'expenses'];
+        const dataMap = { products, customers, suppliers, invoices, payments, expenses };
+
+        for (const coll of collections) {
+            backup[coll] = dataMap[coll].map(item => {
+                const clean = {};
+                for (const [key, val] of Object.entries(item)) {
+                    if (val && typeof val === 'object' && val.toDate) {
+                        clean[key] = { __type: 'timestamp', value: val.toDate().toISOString() };
+                    } else {
+                        clean[key] = val;
+                    }
+                }
+                return clean;
+            });
+            backup._stats[coll] = backup[coll].length;
+        }
+
+        // الإعدادات
+        backup.settings = { ...settings };
+        backup._stats.settings = 1;
+
+        const total = Object.values(backup._stats).reduce((a, b) => a + b, 0);
+
+        // تحميل الملف
+        const filename = `backup-${(currentUser.email || 'user').replace(/[@.]/g, '_')}-${new Date().toISOString().slice(0, 10)}-${Date.now().toString().slice(-4)}.json`;
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // احفظ تاريخ آخر نسخة
+        const now = new Date().toLocaleString('ar-EG');
+        localStorage.setItem('lastBackupDate', now);
+        renderBackupStats();
+
+        showToast(`✅ تم تصدير ${total} مستند بنجاح`, 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('فشل التصدير: ' + err.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'تصدير الآن'; }
+    }
+}
+
+/**
+ * استيراد البيانات من ملف JSON
+ */
+async function importBackup() {
+    if (!currentUser) { showToast('يجب تسجيل الدخول', 'error'); return; }
+
+    // 1) اختر الملف
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json,application/json';
+
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 2) اقرأ الملف
+        let backup;
+        try {
+            const text = await file.text();
+            backup = JSON.parse(text);
+        } catch (err) {
+            showToast('فشل قراءة الملف: ' + err.message, 'error');
+            return;
+        }
+
+        // 3) إحصائيات
+        const collections = ['products', 'customers', 'suppliers', 'invoices', 'payments', 'expenses'];
+        let totalDocs = 0;
+        const stats = {};
+        for (const coll of collections) {
+            const count = Array.isArray(backup[coll]) ? backup[coll].length : 0;
+            stats[coll] = count;
+            totalDocs += count;
+        }
+
+        if (totalDocs === 0) {
+            showToast('الملف فارغ', 'error');
+            return;
+        }
+
+        // 4) تأكيد
+        const ownerEmail = backup._meta?.ownerEmail || 'غير معروف';
+        const exportedAt = backup._meta?.exportedAt ? new Date(backup._meta.exportedAt).toLocaleString('ar-EG') : 'غير معروف';
+
+        const msg =
+            `📂 معلومات النسخة:\n\n` +
+            `👤 من حساب: ${ownerEmail}\n` +
+            `📅 تاريخ: ${exportedAt}\n\n` +
+            `📊 المحتوى:\n` +
+            Object.entries(stats).filter(([_, c]) => c > 0).map(([k, c]) => `   • ${k}: ${c}`).join('\n') +
+            `\n\n⚠️ سيتم إضافة ${totalDocs} مستند إلى حسابك الحالي.\n` +
+            `هل أنت متأكد؟`;
+
+        if (!confirm(msg)) return;
+
+        // 5) استيراد
+        const totalSteps = Object.values(stats).filter(c => c > 0).length;
+        let currentStep = 0;
+        showToast(`جارٍ الاستيراد (0/${totalSteps})...`, 'info');
+
+        let grandSuccess = 0;
+        let grandFailed = 0;
+
+        for (const collName of collections) {
+            const items = backup[collName];
+            if (!Array.isArray(items) || items.length === 0) continue;
+
+            currentStep++;
+            let success = 0;
+            let failed = 0;
+
+            for (const item of items) {
+                try {
+                    const data = { ...item };
+                    delete data.id;
+
+                    // تحويل Timestamps
+                    for (const [key, val] of Object.entries(data)) {
+                        if (val && typeof val === 'object' && val.__type === 'timestamp') {
+                            data[key] = new Date(val.value);
+                        }
+                    }
+
+                    // تحديث ownerId
+                    data.ownerId = currentUser.uid;
+
+                    await addDoc(collection(db, collName), data);
+                    success++;
+                } catch (err) {
+                    console.warn(`فشل استيراد من ${collName}:`, err);
+                    failed++;
+                }
+            }
+
+            grandSuccess += success;
+            grandFailed += failed;
+            showToast(`استيراد ${collName}: ${success}/${items.length}`, 'info');
+        }
+
+        // الإعدادات
+        if (backup.settings) {
+            try {
+                const data = { ...backup.settings };
+                delete data.ownerId;
+                for (const [key, val] of Object.entries(data)) {
+                    if (val && typeof val === 'object' && val.__type === 'timestamp') {
+                        data[key] = new Date(val.value);
+                    }
+                }
+                data.ownerId = currentUser.uid;
+                await setDoc(doc(db, 'settings', currentUser.uid), data, { merge: true });
+                showToast('تم استيراد الإعدادات', 'info');
+            } catch (err) {
+                console.warn('فشل استيراد الإعدادات:', err);
+            }
+        }
+
+        // 6) النتيجة
+        showToast(`✅ تم استيراد ${grandSuccess} مستند${grandFailed > 0 ? ` (فشل: ${grandFailed})` : ''}`, 'success');
+
+        setTimeout(() => {
+            if (confirm('تم الاستيراد بنجاح!\n\nهل تريد إعادة تحميل الصفحة لرؤية البيانات؟')) {
+                location.reload();
+            }
+        }, 800);
+    };
+
+    fileInput.click();
+}
+
+/**
+ * حذف كل بيانات الحساب
+ */
+async function deleteAllData() {
+    if (!currentUser) { showToast('يجب تسجيل الدخول', 'error'); return; }
+
+    // حساب عدد المستندات
+    const collections = ['products', 'customers', 'suppliers', 'invoices', 'payments', 'expenses'];
+    const total = products.length + customers.length + suppliers.length +
+                  invoices.length + payments.length + expenses.length;
+
+    if (total === 0) {
+        showToast('لا يوجد بيانات للحذف', 'warn');
+        return;
+    }
+
+    const msg =
+        `⚠️⚠️⚠️ تحذير ⚠️⚠️⚠️\n\n` +
+        `سيتم حذف ${total} مستند نهائياً:\n\n` +
+        `📦 أصناف: ${products.length}\n` +
+        `👥 عملاء: ${customers.length}\n` +
+        `🚚 موردين: ${suppliers.length}\n` +
+        `🧾 فواتير: ${invoices.length}\n` +
+        `💰 دفعات: ${payments.length}\n` +
+        `💸 مصروفات: ${expenses.length}\n\n` +
+        `❌ لا يمكن التراجع!\n\n` +
+        `هل أنت متأكد تماماً؟`;
+
+    if (!confirm(msg)) return;
+
+    // تأكيد ثانٍ
+    if (!confirm('تأكيد أخير: هل تريد المتابعة؟')) return;
+
+    showToast('جارٍ الحذف...', 'info');
+
+    let totalDeleted = 0;
+    for (const collName of collections) {
+        try {
+            const snap = await getDocs(query(collection(db, collName), where('ownerId', '==', currentUser.uid)));
+            for (const d of snap.docs) {
+                try {
+                    await deleteDoc(doc(db, collName, d.id));
+                    totalDeleted++;
+                } catch (err) {
+                    console.warn(`فشل حذف ${d.id}:`, err);
+                }
+            }
+        } catch (err) {
+            console.warn(`فشل حذف من ${collName}:`, err);
+        }
+    }
+
+    showToast(`✅ تم حذف ${totalDeleted} مستند`, 'success');
+
+    setTimeout(() => {
+        if (confirm('تم الحذف بنجاح.\n\nهل تريد إعادة تحميل الصفحة؟')) {
+            location.reload();
+        }
+    }, 800);
+}
 // ============ Window Export ============
 Object.assign(window, {
     switchAuthMode, logout, switchTab,
@@ -2096,6 +2484,8 @@ Object.assign(window, {
     openPaymentModal, openStatement, openPaymentModalFromStatement,
     printStatement,
     generateReport, renderReportsLive, renderDashboard,
+        // النسخ الاحتياطي
+    exportBackup, importBackup, deleteAllData, renderBackupStats,
     showToast, escapeHtml, formatMoney, formatDate, dateKey
 });
 
