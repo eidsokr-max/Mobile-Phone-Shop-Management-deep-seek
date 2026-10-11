@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام كناش ومخزن احترافي</title>
+<title>نظام مخزن احترافي</title>
 
 <!-- Favicon (يمنع خطأ 404) -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
@@ -45,7 +45,7 @@
             <div class="w-16 h-16 bg-blue-100 rounded-2xl mx-auto flex items-center justify-center mb-3">
                 <span class="text-3xl">📦</span>
             </div>
-            <h1 class="text-2xl font-bold text-blue-700">نظام كناش ومخزن</h1>
+            <h1 class="text-2xl font-bold text-blue-700">نظام مخزن</h1>
             <p class="text-gray-500 text-sm mt-1">سجّل دخولك للمتابعة</p>
         </div>
         <div class="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
@@ -1646,7 +1646,7 @@ function openStatement(partyType, partyId) {
                 </table>
             </div>
             ${party.notes ? `<div class="bg-yellow-50 p-3 rounded text-sm"><strong>ملاحظات:</strong> ${escapeHtml(party.notes)}</div>` : ''}
-            <div class="text-center text-xs text-gray-400 pt-3 border-t">نظام كناش ومخزن — ${new Date().toLocaleDateString('ar-EG')}</div>
+            <div class="text-center text-xs text-gray-400 pt-3 border-t">نظام مخزن — ${new Date().toLocaleDateString('ar-EG')}</div>
         </div>
     `;
     $('statement-title').textContent = `كشف حساب: ${party.name}`;
