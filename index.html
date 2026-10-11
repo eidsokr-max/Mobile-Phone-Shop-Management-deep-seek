@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام كناش ومخزن احترافي</title>
 
+<!-- Favicon (يمنع خطأ 404) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+
 <!-- كتم تحذير Tailwind CDN -->
 <script>
     const _warn = console.warn;
@@ -45,12 +48,10 @@
             <h1 class="text-2xl font-bold text-blue-700">نظام كناش ومخزن</h1>
             <p class="text-gray-500 text-sm mt-1">سجّل دخولك للمتابعة</p>
         </div>
-
         <div class="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
             <button onclick="switchAuthMode('login')" id="auth-tab-login" class="flex-1 py-2 bg-blue-600 text-white rounded-md font-semibold text-sm transition">دخول</button>
             <button onclick="switchAuthMode('signup')" id="auth-tab-signup" class="flex-1 py-2 text-gray-600 rounded-md font-semibold text-sm transition">حساب جديد</button>
         </div>
-
         <form id="auth-form" class="space-y-3">
             <input type="email" id="auth-email" placeholder="البريد الإلكتروني" required class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
             <input type="password" id="auth-password" placeholder="كلمة المرور (6+ أحرف)" required minlength="6" class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
@@ -62,7 +63,6 @@
 
 <!-- ============ التطبيق الرئيسي ============ -->
 <div id="app-screen" class="hidden min-h-screen">
-
     <header class="bg-white border-b shadow-sm sticky top-0 z-30 no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
             <div class="flex items-center gap-3">
@@ -137,7 +137,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div class="bg-white p-5 rounded-xl shadow-sm">
                     <h3 class="font-bold mb-3">⚠️ أصناف تحتاج تعبئة</h3>
@@ -166,7 +165,6 @@
                     </select>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -207,7 +205,6 @@
                     <input type="date" id="invoice-date-filter" class="border p-2 rounded-lg text-sm" onchange="renderInvoices()">
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -238,7 +235,6 @@
                 </div>
                 <input type="text" id="customer-search" placeholder="🔍 بحث..." class="border p-2 rounded-lg text-sm w-full" oninput="renderParties('customer')">
             </div>
-
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -248,6 +244,7 @@
                                 <th class="p-3 text-sm">الهاتف</th>
                                 <th class="p-3 text-sm">العنوان</th>
                                 <th class="p-3 text-sm">الرصيد</th>
+                                <th class="p-3 text-sm">كشف/دفعة</th>
                                 <th class="p-3 text-sm">إجراءات</th>
                             </tr>
                         </thead>
@@ -266,7 +263,6 @@
                 </div>
                 <input type="text" id="supplier-search" placeholder="🔍 بحث..." class="border p-2 rounded-lg text-sm w-full" oninput="renderParties('supplier')">
             </div>
-
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -276,6 +272,7 @@
                                 <th class="p-3 text-sm">الهاتف</th>
                                 <th class="p-3 text-sm">العنوان</th>
                                 <th class="p-3 text-sm">الرصيد</th>
+                                <th class="p-3 text-sm">كشف/دفعة</th>
                                 <th class="p-3 text-sm">إجراءات</th>
                             </tr>
                         </thead>
@@ -294,7 +291,6 @@
                 </div>
                 <input type="text" id="expense-search" placeholder="🔍 بحث..." class="border p-2 rounded-lg text-sm w-full" oninput="renderExpenses()">
             </div>
-
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -323,7 +319,6 @@
                     <button onclick="generateReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm">عرض التقرير</button>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-xl shadow-sm border-r-4 border-blue-500">
                     <p class="text-sm text-gray-500">إجمالي المبيعات</p>
@@ -350,7 +345,6 @@
                     <p class="text-2xl font-bold mt-1" id="rep-avg-invoice">0 ج.م</p>
                 </div>
             </div>
-
             <div class="bg-white p-5 rounded-xl shadow-sm">
                 <h3 class="font-bold mb-3">الأصناف الأكثر مبيعاً</h3>
                 <div class="overflow-x-auto">
@@ -404,7 +398,7 @@
     </main>
 </div>
 
-<!-- Modals -->
+<!-- ============ Modal: منتج ============ -->
 <div id="product-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin">
         <div class="p-5 border-b sticky top-0 bg-white">
@@ -452,6 +446,7 @@
     </div>
 </div>
 
+<!-- ============ Modal: عميل/مورد ============ -->
 <div id="party-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="p-5 border-b">
@@ -490,6 +485,7 @@
     </div>
 </div>
 
+<!-- ============ Modal: مصروف ============ -->
 <div id="expense-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="p-5 border-b">
@@ -525,17 +521,15 @@
     </div>
 </div>
 
+<!-- ============ Modal: فاتورة ============ -->
 <div id="invoice-modal" class="hidden fixed inset-0 modal-overlay items-start justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
         <div class="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
             <h3 class="text-lg font-bold" id="invoice-modal-title">فاتورة بيع</h3>
             <button onclick="closeModal('invoice-modal')" class="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
         </div>
-
         <form id="invoice-form" class="p-5 space-y-4">
             <input type="hidden" id="inv-type">
-            <input type="hidden" id="inv-number">
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="text-sm font-semibold">رقم الفاتورة</label>
@@ -552,7 +546,6 @@
                     <input type="date" id="inv-date" class="w-full border p-2 rounded-lg mt-1">
                 </div>
             </div>
-
             <div class="border rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -570,7 +563,6 @@
                 </div>
                 <button type="button" onclick="addInvoiceItem()" class="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm border-t">+ إضافة صنف</button>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-3">
                     <div>
@@ -602,7 +594,6 @@
                     <div class="flex justify-between border-t pt-2"><span class="font-bold">المتبقي:</span><span id="inv-remaining" class="font-bold text-red-600">0.00</span></div>
                 </div>
             </div>
-
             <div class="flex gap-2 pt-3 border-t">
                 <button type="button" onclick="closeModal('invoice-modal')" class="flex-1 py-2 bg-gray-200 rounded-lg font-semibold">إلغاء</button>
                 <button type="submit" class="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">حفظ الفاتورة</button>
@@ -611,6 +602,7 @@
     </div>
 </div>
 
+<!-- ============ Modal: عرض/طباعة فاتورة ============ -->
 <div id="invoice-view-modal" class="hidden fixed inset-0 modal-overlay items-start justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
         <div class="p-4 border-b flex justify-between items-center no-print">
@@ -621,6 +613,67 @@
             </div>
         </div>
         <div id="invoice-print-area" class="p-6"></div>
+    </div>
+</div>
+
+<!-- ============ Modal: تسجيل دفعة ============ -->
+<div id="payment-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-5 border-b">
+            <h3 class="text-lg font-bold" id="payment-modal-title">تسجيل دفعة</h3>
+        </div>
+        <form id="payment-form" class="p-5 space-y-3">
+            <input type="hidden" id="pay-party-id">
+            <input type="hidden" id="pay-party-type">
+            <div class="bg-blue-50 p-3 rounded-lg">
+                <p class="text-sm text-gray-600">الجهة:</p>
+                <p class="font-bold text-blue-700" id="pay-party-name">-</p>
+                <p class="text-xs text-gray-500 mt-1">الرصيد الحالي: <span id="pay-current-balance" class="font-semibold">0</span></p>
+            </div>
+            <div>
+                <label class="text-sm font-semibold">نوع الدفعة</label>
+                <select id="pay-direction" class="w-full border p-2 rounded-lg mt-1">
+                    <option value="in">💵 تحصيل من العميل (نقدية داخلة)</option>
+                    <option value="out">💸 سداد لمورد (نقدية خارجة)</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-sm font-semibold">المبلغ *</label>
+                <input type="number" id="pay-amount" required min="0.01" step="0.01" class="w-full border p-2 rounded-lg mt-1">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">طريقة الدفع</label>
+                <select id="pay-method" class="w-full border p-2 rounded-lg mt-1">
+                    <option value="cash">نقدي</option>
+                    <option value="bank">تحويل بنكي</option>
+                    <option value="wallet">محفظة إلكترونية</option>
+                    <option value="check">شيك</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-sm font-semibold">ملاحظات</label>
+                <textarea id="pay-notes" rows="2" class="w-full border p-2 rounded-lg mt-1"></textarea>
+            </div>
+            <div class="flex gap-2 pt-3">
+                <button type="button" onclick="closeModal('payment-modal')" class="flex-1 py-2 bg-gray-200 rounded-lg font-semibold">إلغاء</button>
+                <button type="submit" class="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">حفظ الدفعة</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============ Modal: كشف حساب ============ -->
+<div id="statement-modal" class="hidden fixed inset-0 modal-overlay items-start justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
+        <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10 no-print">
+            <h3 class="text-lg font-bold" id="statement-title">كشف حساب</h3>
+            <div class="flex gap-2">
+                <button onclick="openPaymentModalFromStatement()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm font-semibold">+ تسجيل دفعة</button>
+                <button onclick="printStatement()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm font-semibold">🖨️ طباعة</button>
+                <button onclick="closeModal('statement-modal')" class="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
+            </div>
+        </div>
+        <div id="statement-print-area" class="p-6"></div>
     </div>
 </div>
 
@@ -643,7 +696,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
     getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc,
-    query, orderBy, serverTimestamp, getDoc, setDoc, where, limit
+    query, serverTimestamp, getDoc, setDoc, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ============ إعدادات Firebase ============
@@ -662,18 +715,13 @@ const db   = getFirestore(app);
 
 // ============ الحالة العامة ============
 let currentUser = null;
-let settings = {
-    storeName: 'متجري',
-    currency: 'ج.م',
-    lowStockThreshold: 5,
-    invoicePrefix: 'INV'
-};
+let settings = { storeName: 'متجري', currency: 'ج.م', lowStockThreshold: 5, invoicePrefix: 'INV' };
 let products = [];
 let customers = [];
 let suppliers = [];
 let invoices = [];
 let expenses = [];
-let invoiceItems = [];
+let payments = [];
 
 const unsubs = {};
 const $ = (id) => document.getElementById(id);
@@ -684,7 +732,6 @@ function escapeHtml(str) {
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
 }
-
 function formatMoney(n) { return Number(n || 0).toFixed(2); }
 
 function showToast(msg, type = 'success') {
@@ -723,7 +770,6 @@ function formatDate(ts) {
     const d = ts.toDate ? ts.toDate() : new Date(ts);
     return d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
-
 function dateKey(ts) {
     const d = ts?.toDate ? ts.toDate() : new Date(ts);
     return d.toISOString().slice(0, 10);
@@ -731,7 +777,6 @@ function dateKey(ts) {
 
 // ============ المصادقة ============
 let authMode = 'login';
-
 function switchAuthMode(mode) {
     authMode = mode;
     const loginBtn  = $('auth-tab-login');
@@ -758,7 +803,6 @@ $('auth-form').addEventListener('submit', async (e) => {
     errEl.classList.add('hidden');
     submitBtn.disabled = true;
     submitBtn.textContent = 'جارٍ...';
-
     try {
         if (authMode === 'login') {
             await signInWithEmailAndPassword(auth, email, password);
@@ -786,7 +830,6 @@ async function logout() {
     if (await confirmDialog('هل تريد تسجيل الخروج؟', 'خروج')) await signOut(auth);
 }
 
-// ============ مراقبة الحالة ============
 onAuthStateChanged(auth, async (user) => {
     $('loader-screen').classList.add('hidden');
     if (user) {
@@ -808,19 +851,11 @@ onAuthStateChanged(auth, async (user) => {
 async function loadSettings() {
     try {
         const snap = await getDoc(doc(db, 'settings', currentUser.uid));
-        if (snap.exists()) {
-            settings = { ...settings, ...snap.data() };
-        } else {
-            await setDoc(doc(db, 'settings', currentUser.uid), {
-                ...settings,
-                ownerId: currentUser.uid,
-                createdAt: serverTimestamp()
-            });
-        }
+        if (snap.exists()) settings = { ...settings, ...snap.data() };
+        else await setDoc(doc(db, 'settings', currentUser.uid), { ...settings, ownerId: currentUser.uid, createdAt: serverTimestamp() });
         applySettings();
     } catch (err) {
         console.error('loadSettings:', err);
-        showToast('فشل تحميل الإعدادات: ' + err.message, 'error');
     }
 }
 
@@ -854,86 +889,77 @@ $('settings-form').addEventListener('submit', async (e) => {
     }
 });
 
-// ============ Real-time Listeners ============
-// ملاحظة: أزلنا orderBy من الفواتير لتجنب الحاجة لفهرس مركّب.
-// الترتيب يتم في JavaScript. يمكن إعادة orderBy بعد إنشاء الفهرس.
+// ============ Listeners ============
 function startListeners() {
-    // المنتجات
     unsubs.products = onSnapshot(
         query(collection(db, 'products'), where('ownerId', '==', currentUser.uid)),
         snap => {
             products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderProducts();
-            renderDashboard();
+            renderProducts(); renderDashboard(); renderReportsLive();
         },
         err => console.error('products listener:', err)
     );
 
-    // العملاء
     unsubs.customers = onSnapshot(
         query(collection(db, 'customers'), where('ownerId', '==', currentUser.uid)),
         snap => {
             customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderParties('customer');
-            renderDashboard();
+            renderParties('customer'); renderDashboard(); renderReportsLive();
         },
         err => console.error('customers listener:', err)
     );
 
-    // الموردين
     unsubs.suppliers = onSnapshot(
         query(collection(db, 'suppliers'), where('ownerId', '==', currentUser.uid)),
         snap => {
             suppliers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderParties('supplier');
+            renderParties('supplier'); renderReportsLive();
         },
         err => console.error('suppliers listener:', err)
     );
 
-    // الفواتير — بدون orderBy (لتفادي الحاجة لفهرس مركّب)
     unsubs.invoices = onSnapshot(
         query(collection(db, 'invoices'), where('ownerId', '==', currentUser.uid)),
         snap => {
             invoices = snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => {
-                    const ta = a.createdAt?.toDate?.()?.getTime() || 0;
-                    const tb = b.createdAt?.toDate?.()?.getTime() || 0;
-                    return tb - ta;
-                });
-            renderInvoices();
-            renderDashboard();
+                .sort((a, b) => (b.createdAt?.toDate?.()?.getTime() || 0) - (a.createdAt?.toDate?.()?.getTime() || 0));
+            renderInvoices(); renderDashboard(); renderReportsLive();
         },
         err => console.error('invoices listener:', err)
     );
 
-    // المصروفات — بدون orderBy
     unsubs.expenses = onSnapshot(
         query(collection(db, 'expenses'), where('ownerId', '==', currentUser.uid)),
         snap => {
             expenses = snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => {
-                    const ta = a.createdAt?.toDate?.()?.getTime() || 0;
-                    const tb = b.createdAt?.toDate?.()?.getTime() || 0;
-                    return tb - ta;
-                });
-            renderExpenses();
-            renderDashboard();
+                .sort((a, b) => (b.createdAt?.toDate?.()?.getTime() || 0) - (a.createdAt?.toDate?.()?.getTime() || 0));
+            renderExpenses(); renderDashboard(); renderReportsLive();
         },
         err => console.error('expenses listener:', err)
+    );
+
+    unsubs.payments = onSnapshot(
+        query(collection(db, 'payments'), where('ownerId', '==', currentUser.uid)),
+        snap => {
+            payments = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.createdAt?.toDate?.()?.getTime() || 0) - (a.createdAt?.toDate?.()?.getTime() || 0));
+            renderDashboard(); renderReportsLive();
+        },
+        err => console.error('payments listener:', err)
     );
 }
 
 function stopListeners() {
     Object.values(unsubs).forEach(u => u && u());
     Object.keys(unsubs).forEach(k => delete unsubs[k]);
-    products = []; customers = []; suppliers = []; invoices = []; expenses = [];
+    products = []; customers = []; suppliers = []; invoices = []; expenses = []; payments = [];
 }
 
 // ============ التنقل ============
 const NAV_TABS = ['dashboard','products','invoices','customers','suppliers','expenses','reports','settings'];
-
 function switchTab(tab) {
     NAV_TABS.forEach(t => {
         const el  = $('tab-' + t);
@@ -947,9 +973,10 @@ function switchTab(tab) {
             if (btn) btn.className = "nav-btn px-4 py-3 font-semibold text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-600 transition";
         }
     });
+    if (tab === 'reports') setTimeout(generateReport, 100);
 }
 
-// ============ المنتجات ============
+// ============ الأصناف ============
 function openProductModal(id) {
     $('product-form').reset();
     $('prod-id').value = '';
@@ -988,62 +1015,36 @@ $('product-form').addEventListener('submit', async (e) => {
         updatedAt: serverTimestamp()
     };
     if (!data.name) { showToast('اسم الصنف مطلوب', 'error'); return; }
-    if (data.qty < 0 || data.sellPrice < 0) { showToast('قيم غير صحيحة', 'error'); return; }
-
     try {
-        if (id) {
-            await updateDoc(doc(db, 'products', id), data);
-            showToast('تم التعديل ✅');
-        } else {
-            data.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'products'), data);
-            showToast('تمت الإضافة ✅');
-        }
+        if (id) { await updateDoc(doc(db, 'products', id), data); showToast('تم التعديل ✅'); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'products'), data); showToast('تمت الإضافة ✅'); }
         closeModal('product-modal');
-    } catch (err) {
-        showToast('فشل الحفظ: ' + err.message, 'error');
-    }
+    } catch (err) { showToast('فشل الحفظ: ' + err.message, 'error'); }
 });
 
 async function deleteProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
     if (!await confirmDialog(`حذف "${p.name}"؟`, 'تأكيد الحذف')) return;
-    try {
-        await deleteDoc(doc(db, 'products', id));
-        showToast('تم الحذف', 'info');
-    } catch (err) {
-        showToast('فشل الحذف: ' + err.message, 'error');
-    }
+    try { await deleteDoc(doc(db, 'products', id)); showToast('تم الحذف', 'info'); }
+    catch (err) { showToast('فشل الحذف: ' + err.message, 'error'); }
 }
 
 function renderProducts() {
     const tbody = $('products-table-body');
     const search = ($('product-search')?.value || '').toLowerCase();
     const filter = $('product-filter')?.value || 'all';
-
     let list = products;
-    if (search) list = list.filter(p =>
-        (p.name || '').toLowerCase().includes(search) ||
-        (p.sku || '').toLowerCase().includes(search)
-    );
+    if (search) list = list.filter(p => (p.name || '').toLowerCase().includes(search) || (p.sku || '').toLowerCase().includes(search));
     if (filter === 'low') list = list.filter(p => p.qty <= (p.minQty ?? settings.lowStockThreshold));
     if (filter === 'out') list = list.filter(p => p.qty <= 0);
-
-    if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-400">لا توجد أصناف</td></tr>`;
-        return;
-    }
-
+    if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-400">لا توجد أصناف</td></tr>`; return; }
     tbody.innerHTML = list.map(p => {
         const profit = (p.sellPrice || 0) - (p.costPrice || 0);
         const low = p.qty <= (p.minQty ?? settings.lowStockThreshold);
         return `
         <tr class="border-b hover:bg-gray-50">
-            <td class="p-3">
-                <div class="font-semibold">${escapeHtml(p.name)}</div>
-                ${p.category ? `<div class="text-xs text-gray-500">${escapeHtml(p.category)}</div>` : ''}
-            </td>
+            <td class="p-3"><div class="font-semibold">${escapeHtml(p.name)}</div>${p.category ? `<div class="text-xs text-gray-500">${escapeHtml(p.category)}</div>` : ''}</td>
             <td class="p-3 text-sm text-gray-600">${escapeHtml(p.sku || '-')}</td>
             <td class="p-3 font-bold ${low ? 'text-red-600' : 'text-green-600'}">${p.qty}${low ? ' ⚠️' : ''}</td>
             <td class="p-3 text-sm">${formatMoney(p.costPrice)}</td>
@@ -1064,7 +1065,6 @@ function openPartyModal(type, id) {
     $('party-type').value = type;
     const label = type === 'customer' ? 'عميل' : 'مورد';
     $('party-modal-title').textContent = id ? `تعديل ${label}` : `إضافة ${label}`;
-
     if (id) {
         const arr = type === 'customer' ? customers : suppliers;
         const p = arr.find(x => x.id === id);
@@ -1085,31 +1085,23 @@ $('party-form').addEventListener('submit', async (e) => {
     const id = $('party-id').value;
     const type = $('party-type').value;
     const coll = type === 'customer' ? 'customers' : 'suppliers';
-
+    const balance = parseFloat($('party-balance').value) || 0;
     const data = {
         name: $('party-name').value.trim(),
         phone: $('party-phone').value.trim(),
         address: $('party-address').value.trim(),
-        balance: parseFloat($('party-balance').value) || 0,
+        balance: balance,
+        openingBalance: balance,
         notes: $('party-notes').value.trim(),
         ownerId: currentUser.uid,
         updatedAt: serverTimestamp()
     };
     if (!data.name) { showToast('الاسم مطلوب', 'error'); return; }
-
     try {
-        if (id) {
-            await updateDoc(doc(db, coll, id), data);
-            showToast('تم التعديل ✅');
-        } else {
-            data.createdAt = serverTimestamp();
-            await addDoc(collection(db, coll), data);
-            showToast('تمت الإضافة ✅');
-        }
+        if (id) { await updateDoc(doc(db, coll, id), data); showToast('تم التعديل ✅'); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, coll), data); showToast('تمت الإضافة ✅'); }
         closeModal('party-modal');
-    } catch (err) {
-        showToast('فشل الحفظ: ' + err.message, 'error');
-    }
+    } catch (err) { showToast('فشل الحفظ: ' + err.message, 'error'); }
 });
 
 async function deleteParty(type, id) {
@@ -1117,12 +1109,8 @@ async function deleteParty(type, id) {
     const p = arr.find(x => x.id === id);
     if (!p) return;
     if (!await confirmDialog(`حذف "${p.name}"؟`, 'تأكيد الحذف')) return;
-    try {
-        await deleteDoc(doc(db, type === 'customer' ? 'customers' : 'suppliers', id));
-        showToast('تم الحذف', 'info');
-    } catch (err) {
-        showToast('فشل الحذف: ' + err.message, 'error');
-    }
+    try { await deleteDoc(doc(db, type === 'customer' ? 'customers' : 'suppliers', id)); showToast('تم الحذف', 'info'); }
+    catch (err) { showToast('فشل الحذف: ' + err.message, 'error'); }
 }
 
 function renderParties(type) {
@@ -1130,24 +1118,29 @@ function renderParties(type) {
     const search = ($(type === 'customer' ? 'customer-search' : 'supplier-search')?.value || '').toLowerCase();
     const arr = type === 'customer' ? customers : suppliers;
     const list = search ? arr.filter(p => (p.name || '').toLowerCase().includes(search)) : arr;
-
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">لا يوجد ${type === 'customer' ? 'عملاء' : 'موردين'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">لا يوجد ${type === 'customer' ? 'عملاء' : 'موردين'}</td></tr>`;
         return;
     }
-
     tbody.innerHTML = list.map(p => {
         const bal = p.balance || 0;
         const balClass = type === 'customer'
-            ? (bal > 0 ? 'text-red-600' : 'text-green-600')
-            : (bal > 0 ? 'text-orange-600' : 'text-green-600');
+            ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
+            : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
+        const balLabel = type === 'customer'
+            ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
+            : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
         return `
         <tr class="border-b hover:bg-gray-50">
-            <td class="p-3 font-semibold">${escapeHtml(p.name)}</td>
+            <td class="p-3"><div class="font-semibold">${escapeHtml(p.name)}</div></td>
             <td class="p-3 text-sm">${escapeHtml(p.phone || '-')}</td>
             <td class="p-3 text-sm text-gray-600">${escapeHtml(p.address || '-')}</td>
-            <td class="p-3 font-bold ${balClass}">${formatMoney(bal)} ${settings.currency}</td>
-            <td class="p-3 flex gap-1">
+            <td class="p-3 font-bold ${balClass}">${formatMoney(Math.abs(bal))} ${settings.currency}<div class="text-xs font-normal">${balLabel}</div></td>
+            <td class="p-3">
+                <button onclick="openStatement('${type}', '${p.id}')" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">📄 كشف</button>
+                <button onclick="openPaymentModal('${type}', '${p.id}')" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">💰 دفعة</button>
+            </td>
+            <td class="p-3">
                 <button onclick="openPartyModal('${type}', '${p.id}')" class="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded">تعديل</button>
                 <button onclick="deleteParty('${type}', '${p.id}')" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">حذف</button>
             </td>
@@ -1157,23 +1150,20 @@ function renderParties(type) {
 
 // ============ الفواتير ============
 function openInvoiceModal(type) {
-    invoiceItems = [];
     $('invoice-form').reset();
     $('inv-type').value = type;
     const isSale = type === 'sale';
     $('invoice-modal-title').textContent = isSale ? '🧾 فاتورة بيع' : '🚚 فاتورة شراء';
     $('inv-party-label').textContent = isSale ? 'العميل *' : 'المورد *';
-
     $('inv-number-display').value = generateInvoiceNumber(type);
     $('inv-date').value = new Date().toISOString().slice(0, 10);
-
     updateInvoicePartySelect();
     addInvoiceItem();
     openModal('invoice-modal');
 }
 
 function generateInvoiceNumber(type) {
-    const prefix = type === 'sale' ? 'S' : type === 'purchase' ? 'P' : 'R';
+    const prefix = type === 'sale' ? 'S' : 'P';
     const sameType = invoices.filter(i => i.type === type);
     const num = String(sameType.length + 1).padStart(5, '0');
     return `${settings.invoicePrefix || 'INV'}-${prefix}${num}`;
@@ -1185,8 +1175,7 @@ function updateInvoicePartySelect() {
     const select = $('inv-party');
     const arr = type === 'sale' ? customers : suppliers;
     const current = select.value;
-    select.innerHTML = '<option value="">اختر...</option>' +
-        arr.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    select.innerHTML = '<option value="">اختر...</option>' + arr.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
     if (arr.some(p => p.id === current)) select.value = current;
 }
 
@@ -1195,7 +1184,6 @@ function addInvoiceItem() {
     const type = $('inv-type').value;
     const isSale = type === 'sale';
     const priceField = isSale ? 'sellPrice' : 'costPrice';
-
     const tbody = $('invoice-items-body');
     const tr = document.createElement('tr');
     tr.id = rowId;
@@ -1241,12 +1229,10 @@ function recalcInvoice() {
         if (totalEl) totalEl.textContent = formatMoney(total);
         subtotal += total;
     });
-
     const discount = parseFloat($('inv-discount').value) || 0;
     const total = Math.max(0, subtotal - discount);
     const paid = parseFloat($('inv-paid').value) || 0;
     const remaining = Math.max(0, total - paid);
-
     $('inv-subtotal').textContent = formatMoney(subtotal);
     $('inv-discount-display').textContent = formatMoney(discount);
     $('inv-total').textContent = formatMoney(total);
@@ -1259,7 +1245,6 @@ $('invoice-form').addEventListener('submit', async (e) => {
     const type = $('inv-type').value;
     const partyId = $('inv-party').value;
     if (!partyId) { showToast('اختر الجهة', 'error'); return; }
-
     const partyArr = type === 'sale' ? customers : suppliers;
     const party = partyArr.find(p => p.id === partyId);
     if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
@@ -1271,15 +1256,9 @@ $('invoice-form').addEventListener('submit', async (e) => {
         const price = parseFloat(tr.querySelector('.inv-item-price')?.value) || 0;
         if (productId && qty > 0) {
             const product = products.find(p => p.id === productId);
-            items.push({
-                productId,
-                name: product?.name || 'غير معروف',
-                qty, price,
-                total: qty * price
-            });
+            items.push({ productId, name: product?.name || 'غير معروف', qty, price, total: qty * price });
         }
     });
-
     if (items.length === 0) { showToast('أضف بنداً واحداً على الأقل', 'error'); return; }
 
     const subtotal = items.reduce((s, i) => s + i.total, 0);
@@ -1292,24 +1271,15 @@ $('invoice-form').addEventListener('submit', async (e) => {
         for (const item of items) {
             const p = products.find(x => x.id === item.productId);
             if (!p) { showToast(`الصنف "${item.name}" غير موجود`, 'error'); return; }
-            if (p.qty < item.qty) {
-                showToast(`الكمية غير كافية للصنف "${p.name}" (متاح: ${p.qty})`, 'error');
-                return;
-            }
+            if (p.qty < item.qty) { showToast(`الكمية غير كافية للصنف "${p.name}" (متاح: ${p.qty})`, 'error'); return; }
         }
     }
 
     const invoice = {
         type,
         number: $('inv-number-display').value,
-        partyId,
-        partyName: party.name,
-        items,
-        subtotal,
-        discount,
-        total,
-        paid,
-        remaining,
+        partyId, partyName: party.name, items,
+        subtotal, discount, total, paid, remaining,
         paymentMethod: $('inv-payment-method').value,
         notes: $('inv-notes').value.trim(),
         date: $('inv-date').value || new Date().toISOString().slice(0, 10),
@@ -1323,31 +1293,19 @@ $('invoice-form').addEventListener('submit', async (e) => {
 
     try {
         const invRef = await addDoc(collection(db, 'invoices'), invoice);
-
-        // تحديث كميات المنتجات
         for (const item of items) {
             const p = products.find(x => x.id === item.productId);
             if (!p) continue;
             let newQty = p.qty;
             if (type === 'sale') newQty -= item.qty;
             else if (type === 'purchase') newQty += item.qty;
-            await updateDoc(doc(db, 'products', item.productId), {
-                qty: newQty,
-                updatedAt: serverTimestamp()
-            });
+            await updateDoc(doc(db, 'products', item.productId), { qty: newQty, updatedAt: serverTimestamp() });
         }
-
-        // تحديث رصيد العميل/المورد
         if (type === 'sale' && remaining > 0) {
-            await updateDoc(doc(db, 'customers', partyId), {
-                balance: (party.balance || 0) + remaining
-            });
+            await updateDoc(doc(db, 'customers', partyId), { balance: (party.balance || 0) + remaining });
         } else if (type === 'purchase' && remaining > 0) {
-            await updateDoc(doc(db, 'suppliers', partyId), {
-                balance: (party.balance || 0) + remaining
-            });
+            await updateDoc(doc(db, 'suppliers', partyId), { balance: (party.balance || 0) + remaining });
         }
-
         showToast('تم حفظ الفاتورة ✅');
         closeModal('invoice-modal');
         setTimeout(() => viewInvoice(invRef.id), 400);
@@ -1365,23 +1323,13 @@ function renderInvoices() {
     const search = ($('invoice-search')?.value || '').toLowerCase();
     const typeFilter = $('invoice-type-filter')?.value || 'all';
     const dateFilter = $('invoice-date-filter')?.value || '';
-
     let list = invoices;
-    if (search) list = list.filter(i =>
-        (i.number || '').toLowerCase().includes(search) ||
-        (i.partyName || '').toLowerCase().includes(search)
-    );
+    if (search) list = list.filter(i => (i.number || '').toLowerCase().includes(search) || (i.partyName || '').toLowerCase().includes(search));
     if (typeFilter !== 'all') list = list.filter(i => i.type === typeFilter);
     if (dateFilter) list = list.filter(i => i.date === dateFilter);
-
-    if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-gray-400">لا توجد فواتير</td></tr>`;
-        return;
-    }
-
+    if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-gray-400">لا توجد فواتير</td></tr>`; return; }
     const typeLabels = { sale: 'بيع', purchase: 'شراء' };
     const typeColors = { sale: 'bg-blue-100 text-blue-700', purchase: 'bg-orange-100 text-orange-700' };
-
     tbody.innerHTML = list.map(inv => `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3 text-sm font-mono">${escapeHtml(inv.number || '-')}</td>
@@ -1391,9 +1339,7 @@ function renderInvoices() {
             <td class="p-3 text-green-600">${formatMoney(inv.paid)}</td>
             <td class="p-3 ${inv.remaining > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}">${formatMoney(inv.remaining)}</td>
             <td class="p-3 text-sm text-gray-500">${inv.date || formatDate(inv.createdAt)}</td>
-            <td class="p-3">
-                <button onclick="viewInvoice('${inv.id}')" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">عرض</button>
-            </td>
+            <td class="p-3"><button onclick="viewInvoice('${inv.id}')" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">عرض</button></td>
         </tr>
     `).join('');
 }
@@ -1402,7 +1348,6 @@ function viewInvoice(id) {
     const inv = invoices.find(i => i.id === id);
     if (!inv) return;
     const typeLabels = { sale: 'فاتورة بيع', purchase: 'فاتورة شراء' };
-
     const html = `
         <div class="space-y-4">
             <div class="flex justify-between items-start border-b pb-3">
@@ -1417,21 +1362,17 @@ function viewInvoice(id) {
                     <p class="text-sm text-gray-600">${inv.date}</p>
                 </div>
             </div>
-
             <div class="grid grid-cols-2 gap-3 text-sm">
                 <div><strong>${inv.type === 'sale' ? 'العميل' : 'المورد'}:</strong> ${escapeHtml(inv.partyName)}</div>
                 <div><strong>طريقة الدفع:</strong> ${{cash:'نقدي', credit:'آجل', partial:'جزئي'}[inv.paymentMethod] || '-'}</div>
             </div>
-
             <table class="w-full text-right border-collapse">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="p-2 border text-sm">الصنف</th>
-                        <th class="p-2 border text-sm">الكمية</th>
-                        <th class="p-2 border text-sm">السعر</th>
-                        <th class="p-2 border text-sm">الإجمالي</th>
-                    </tr>
-                </thead>
+                <thead><tr class="bg-gray-100">
+                    <th class="p-2 border text-sm">الصنف</th>
+                    <th class="p-2 border text-sm">الكمية</th>
+                    <th class="p-2 border text-sm">السعر</th>
+                    <th class="p-2 border text-sm">الإجمالي</th>
+                </tr></thead>
                 <tbody>
                     ${(inv.items || []).map(it => `
                         <tr>
@@ -1443,7 +1384,6 @@ function viewInvoice(id) {
                     `).join('')}
                 </tbody>
             </table>
-
             <div class="flex justify-end">
                 <div class="w-64 space-y-1 text-sm">
                     <div class="flex justify-between"><span>الإجمالي الفرعي:</span><span>${formatMoney(inv.subtotal)}</span></div>
@@ -1453,9 +1393,7 @@ function viewInvoice(id) {
                     <div class="flex justify-between text-red-600 font-bold"><span>المتبقي:</span><span>${formatMoney(inv.remaining)}</span></div>
                 </div>
             </div>
-
             ${inv.notes ? `<div class="bg-gray-50 p-3 rounded text-sm"><strong>ملاحظات:</strong> ${escapeHtml(inv.notes)}</div>` : ''}
-
             <div class="text-center text-xs text-gray-400 pt-3 border-t">شكراً لتعاملكم معنا</div>
         </div>
     `;
@@ -1466,22 +1404,9 @@ function viewInvoice(id) {
 function printInvoice() {
     const content = $('invoice-print-area').innerHTML;
     const win = window.open('', '', 'width=800,height=600');
-    win.document.write(`
-        <html dir="rtl"><head>
-        <title>طباعة فاتورة</title>
-        <style>
-            body { font-family: 'Cairo', Tahoma, sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 6px; text-align: right; font-size: 12px; }
-            th { background: #f3f4f6; }
-            h2 { margin: 0; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
-        </style>
-        </head><body>${content}</body></html>
-    `);
+    win.document.write(`<html dir="rtl"><head><title>طباعة فاتورة</title><style>body{font-family:'Cairo',Tahoma,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;text-align:right;font-size:12px}th{background:#f3f4f6}h2{margin:0}.text-center{text-align:center}.font-bold{font-weight:bold}</style></head><body>${content}</body></html>`);
     win.document.close();
-    setTimeout(() => { win.print(); }, 400);
+    setTimeout(() => win.print(), 400);
 }
 
 // ============ المصروفات ============
@@ -1511,45 +1436,24 @@ $('expense-form').addEventListener('submit', async (e) => {
         updatedAt: serverTimestamp()
     };
     if (data.amount <= 0) { showToast('المبلغ يجب أن يكون أكبر من 0', 'error'); return; }
-
     try {
-        if (id) {
-            await updateDoc(doc(db, 'expenses', id), data);
-            showToast('تم التعديل ✅');
-        } else {
-            data.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'expenses'), data);
-            showToast('تمت الإضافة ✅');
-        }
+        if (id) { await updateDoc(doc(db, 'expenses', id), data); showToast('تم التعديل ✅'); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'expenses'), data); showToast('تمت الإضافة ✅'); }
         closeModal('expense-modal');
-    } catch (err) {
-        showToast('فشل: ' + err.message, 'error');
-    }
+    } catch (err) { showToast('فشل: ' + err.message, 'error'); }
 });
 
 async function deleteExpense(id) {
     if (!await confirmDialog('حذف هذا المصروف؟', 'تأكيد')) return;
-    try {
-        await deleteDoc(doc(db, 'expenses', id));
-        showToast('تم الحذف', 'info');
-    } catch (err) {
-        showToast('فشل: ' + err.message, 'error');
-    }
+    try { await deleteDoc(doc(db, 'expenses', id)); showToast('تم الحذف', 'info'); }
+    catch (err) { showToast('فشل: ' + err.message, 'error'); }
 }
 
 function renderExpenses() {
     const tbody = $('expenses-table-body');
     const search = ($('expense-search')?.value || '').toLowerCase();
-    const list = search ? expenses.filter(e =>
-        (e.description || '').toLowerCase().includes(search) ||
-        (e.category || '').toLowerCase().includes(search)
-    ) : expenses;
-
-    if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">لا توجد مصروفات</td></tr>`;
-        return;
-    }
-
+    const list = search ? expenses.filter(e => (e.description || '').toLowerCase().includes(search) || (e.category || '').toLowerCase().includes(search)) : expenses;
+    if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">لا توجد مصروفات</td></tr>`; return; }
     tbody.innerHTML = list.map(e => `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3"><span class="text-xs px-2 py-1 rounded bg-gray-100">${escapeHtml(e.category)}</span></td>
@@ -1564,20 +1468,218 @@ function renderExpenses() {
     `).join('');
 }
 
+// ============ المدفوعات ============
+function openPaymentModal(partyType, partyId) {
+    const arr = partyType === 'customer' ? customers : suppliers;
+    const party = arr.find(p => p.id === partyId);
+    if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
+
+    $('payment-form').reset();
+    $('pay-party-id').value = partyId;
+    $('pay-party-type').value = partyType;
+    $('pay-party-name').textContent = party.name;
+    $('pay-current-balance').textContent = formatMoney(party.balance || 0) + ' ' + settings.currency;
+    $('pay-direction').value = partyType === 'customer' ? 'in' : 'out';
+    $('payment-modal-title').textContent = partyType === 'customer'
+        ? `💵 تحصيل دفعة من ${party.name}`
+        : `💸 سداد دفعة لـ ${party.name}`;
+    openModal('payment-modal');
+}
+
+$('payment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const partyId = $('pay-party-id').value;
+    const partyType = $('pay-party-type').value;
+    const amount = parseFloat($('pay-amount').value) || 0;
+    if (amount <= 0) { showToast('المبلغ يجب أن يكون أكبر من 0', 'error'); return; }
+
+    const arr = partyType === 'customer' ? customers : suppliers;
+    const party = arr.find(p => p.id === partyId);
+    if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
+
+    const paymentData = {
+        partyId, partyType, partyName: party.name, amount,
+        direction: $('pay-direction').value,
+        method: $('pay-method').value,
+        notes: $('pay-notes').value.trim(),
+        date: new Date().toISOString().slice(0, 10),
+        ownerId: currentUser.uid,
+        createdAt: serverTimestamp()
+    };
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'جارٍ...';
+
+    try {
+        await addDoc(collection(db, 'payments'), paymentData);
+        await updateDoc(
+            doc(db, partyType === 'customer' ? 'customers' : 'suppliers', partyId),
+            { balance: (party.balance || 0) - amount }
+        );
+        showToast(`تم تسجيل دفعة ${formatMoney(amount)} ${settings.currency} ✅`);
+        closeModal('payment-modal');
+        if (!$('statement-modal').classList.contains('hidden')) {
+            setTimeout(() => openStatement(partyType, partyId), 300);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('فشل الحفظ: ' + err.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'حفظ الدفعة';
+    }
+});
+
+// ============ كشف الحساب ============
+function openStatement(partyType, partyId) {
+    const arr = partyType === 'customer' ? customers : suppliers;
+    const party = arr.find(p => p.id === partyId);
+    if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
+
+    const movements = [];
+    const openingBalance = party.openingBalance || 0;
+    if (openingBalance !== 0) {
+        movements.push({
+            date: party.createdAt ? dateKey(party.createdAt) : 'بداية',
+            description: 'رصيد افتتاحي',
+            debit: partyType === 'customer' ? openingBalance : 0,
+            credit: partyType === 'supplier' ? openingBalance : 0,
+            sortKey: 0
+        });
+    }
+
+    invoices.forEach(inv => {
+        if (inv.partyId !== partyId) return;
+        let debit = 0, credit = 0, desc = '';
+        if (partyType === 'customer') {
+            if (inv.type === 'sale') { debit = inv.total; desc = `فاتورة بيع #${inv.number}`; }
+        } else {
+            if (inv.type === 'purchase') { credit = inv.total; desc = `فاتورة شراء #${inv.number}`; }
+        }
+        if (debit || credit) {
+            movements.push({
+                date: inv.date || formatDate(inv.createdAt),
+                description: desc, debit, credit,
+                sortKey: inv.createdAt?.toDate?.()?.getTime() || 0
+            });
+        }
+    });
+
+    payments.forEach(pay => {
+        if (pay.partyId !== partyId) return;
+        movements.push({
+            date: pay.date || formatDate(pay.createdAt),
+            description: `دفعة (${pay.method === 'cash' ? 'نقدي' : pay.method === 'bank' ? 'بنكي' : 'أخرى'})${pay.notes ? ' - ' + pay.notes : ''}`,
+            debit: pay.direction === 'out' ? pay.amount : 0,
+            credit: pay.direction === 'in' ? pay.amount : 0,
+            sortKey: pay.createdAt?.toDate?.()?.getTime() || 0
+        });
+    });
+
+    movements.sort((a, b) => a.sortKey - b.sortKey);
+    let running = 0;
+    movements.forEach(m => { running += (m.debit || 0) - (m.credit || 0); m.running = running; });
+
+    const totalDebit = movements.reduce((s, m) => s + (m.debit || 0), 0);
+    const totalCredit = movements.reduce((s, m) => s + (m.credit || 0), 0);
+    const finalBalance = party.balance || 0;
+
+    const typeLabel = partyType === 'customer' ? 'عميل' : 'مورد';
+    const balanceLabel = partyType === 'customer'
+        ? (finalBalance > 0 ? 'مدين لك' : finalBalance < 0 ? 'دائن له' : 'متوازن')
+        : (finalBalance > 0 ? 'أنت مدين له' : finalBalance < 0 ? 'دائن لك' : 'متوازن');
+
+    const html = `
+        <div class="space-y-4">
+            <div class="flex justify-between items-start border-b pb-3">
+                <div>
+                    <h2 class="text-xl font-bold">${escapeHtml(settings.storeName || 'متجري')}</h2>
+                    ${settings.phone ? `<p class="text-sm text-gray-600">📞 ${escapeHtml(settings.phone)}</p>` : ''}
+                </div>
+                <div class="text-left">
+                    <p class="text-lg font-bold text-blue-700">كشف حساب ${typeLabel}</p>
+                    <p class="text-sm text-gray-600">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><p class="text-xs text-gray-500">الاسم</p><p class="font-bold">${escapeHtml(party.name)}</p></div>
+                <div><p class="text-xs text-gray-500">الهاتف</p><p class="font-semibold">${escapeHtml(party.phone || '-')}</p></div>
+                <div><p class="text-xs text-gray-500">العنوان</p><p class="font-semibold">${escapeHtml(party.address || '-')}</p></div>
+                <div>
+                    <p class="text-xs text-gray-500">الرصيد الحالي</p>
+                    <p class="font-bold ${finalBalance > 0 ? 'text-red-600' : finalBalance < 0 ? 'text-green-600' : 'text-gray-600'}">
+                        ${formatMoney(Math.abs(finalBalance))} ${settings.currency}
+                        <span class="text-xs font-normal">(${balanceLabel})</span>
+                    </p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead><tr class="bg-gray-100">
+                        <th class="p-2 border text-sm">التاريخ</th>
+                        <th class="p-2 border text-sm">البيان</th>
+                        <th class="p-2 border text-sm">مدين</th>
+                        <th class="p-2 border text-sm">دائن</th>
+                        <th class="p-2 border text-sm">الرصيد</th>
+                    </tr></thead>
+                    <tbody>
+                        ${movements.length === 0 ? `<tr><td colspan="5" class="p-6 text-center text-gray-400">لا توجد حركات</td></tr>` :
+                        movements.map(m => `
+                            <tr class="border-b">
+                                <td class="p-2 border text-sm">${escapeHtml(m.date)}</td>
+                                <td class="p-2 border text-sm">${escapeHtml(m.description)}</td>
+                                <td class="p-2 border text-sm text-red-600">${m.debit ? formatMoney(m.debit) : '-'}</td>
+                                <td class="p-2 border text-sm text-green-600">${m.credit ? formatMoney(m.credit) : '-'}</td>
+                                <td class="p-2 border text-sm font-bold">${formatMoney(m.running)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-100 font-bold">
+                            <td colspan="2" class="p-2 border text-sm">الإجمالي</td>
+                            <td class="p-2 border text-sm text-red-600">${formatMoney(totalDebit)}</td>
+                            <td class="p-2 border text-sm text-green-600">${formatMoney(totalCredit)}</td>
+                            <td class="p-2 border text-sm">${formatMoney(finalBalance)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            ${party.notes ? `<div class="bg-yellow-50 p-3 rounded text-sm"><strong>ملاحظات:</strong> ${escapeHtml(party.notes)}</div>` : ''}
+            <div class="text-center text-xs text-gray-400 pt-3 border-t">نظام كناش ومخزن — ${new Date().toLocaleDateString('ar-EG')}</div>
+        </div>
+    `;
+    $('statement-title').textContent = `كشف حساب: ${party.name}`;
+    $('statement-print-area').innerHTML = html;
+    $('statement-print-area').dataset.partyType = partyType;
+    $('statement-print-area').dataset.partyId = partyId;
+    openModal('statement-modal');
+}
+
+function openPaymentModalFromStatement() {
+    const partyType = $('statement-print-area').dataset.partyType;
+    const partyId = $('statement-print-area').dataset.partyId;
+    if (!partyType || !partyId) return;
+    closeModal('statement-modal');
+    setTimeout(() => openPaymentModal(partyType, partyId), 300);
+}
+
+function printStatement() {
+    const content = $('statement-print-area').innerHTML;
+    const win = window.open('', '', 'width=900,height=700');
+    win.document.write(`<html dir="rtl"><head><title>كشف حساب</title><style>body{font-family:'Cairo',Tahoma,sans-serif;padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:6px;text-align:right;font-size:12px}th{background:#f3f4f6}h2{margin:0}.text-center{text-align:center}.font-bold{font-weight:bold}.text-red-600{color:#dc2626}.text-green-600{color:#16a34a}.bg-gray-50{background:#f9fafb;padding:10px;border-radius:5px;margin:10px 0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}</style></head><body>${content}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+}
+
 // ============ Dashboard ============
 function renderDashboard() {
     const today = new Date().toISOString().slice(0, 10);
-
-    const todaySales = invoices
-        .filter(i => i.type === 'sale' && i.date === today)
-        .reduce((s, i) => s + (i.total || 0), 0);
+    const todaySales = invoices.filter(i => i.type === 'sale' && i.date === today).reduce((s, i) => s + (i.total || 0), 0);
     $('dash-today-sales').textContent = formatMoney(todaySales);
-
     $('dash-products-count').textContent = products.length;
-
     const lowStock = products.filter(p => p.qty <= (p.minQty ?? settings.lowStockThreshold));
     $('dash-low-stock').textContent = lowStock.length;
-
     const debt = customers.reduce((s, c) => s + Math.max(0, c.balance || 0), 0);
     $('dash-customers-debt').textContent = formatMoney(debt);
 
@@ -1599,7 +1701,7 @@ function renderDashboard() {
         recent.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">لا توجد فواتير بعد</p>';
     } else {
         recent.innerHTML = recentList.map(i => `
-            <div class="flex justify-between items-center p-2 border-b last:border-0">
+            <div class="flex justify-between items-center p-2 border-b last:border-0 cursor-pointer hover:bg-gray-50" onclick="viewInvoice('${i.id}')">
                 <div>
                     <p class="text-sm font-semibold">${escapeHtml(i.partyName)}</p>
                     <p class="text-xs text-gray-500 font-mono">${escapeHtml(i.number)}</p>
@@ -1614,10 +1716,15 @@ function renderDashboard() {
 }
 
 // ============ التقارير ============
+function renderReportsLive() {
+    const reportsTab = $('tab-reports');
+    if (!reportsTab || reportsTab.classList.contains('hidden')) return;
+    generateReport();
+}
+
 function generateReport() {
     const from = $('report-from').value;
     const to = $('report-to').value;
-
     const inRange = (dateStr) => {
         if (!from && !to) return true;
         if (from && dateStr < from) return false;
@@ -1639,7 +1746,15 @@ function generateReport() {
             cogs += (p?.costPrice || 0) * it.qty;
         });
     });
+
+    let cogsSource = 'actual';
+    if (cogs === 0 && salesTotal > 0) {
+        cogs = salesTotal * 0.7;
+        cogsSource = 'estimated';
+    }
+
     const profit = salesTotal - cogs - expensesTotal;
+    const profitMargin = salesTotal > 0 ? (profit / salesTotal * 100) : 0;
 
     const salesInvoices = filteredInvoices.filter(i => i.type === 'sale');
 
@@ -1647,6 +1762,23 @@ function generateReport() {
     $('rep-purchases').textContent = formatMoney(purchasesTotal) + ' ' + settings.currency;
     $('rep-expenses').textContent = formatMoney(expensesTotal) + ' ' + settings.currency;
     $('rep-profit').textContent = formatMoney(profit) + ' ' + settings.currency;
+
+    const profitEl = $('rep-profit');
+    const profitParent = profitEl.parentElement;
+    let badge = profitParent.querySelector('.profit-badge');
+    if (!badge) {
+        badge = document.createElement('p');
+        badge.className = 'profit-badge text-xs mt-1';
+        profitParent.appendChild(badge);
+    }
+    if (cogsSource === 'estimated') {
+        badge.className = 'profit-badge text-xs mt-1 text-yellow-600';
+        badge.textContent = `⚠️ تقديري (هامش 30%) — حدّد أسعار التكلفة للدقة`;
+    } else {
+        badge.className = 'profit-badge text-xs mt-1 ' + (profitMargin >= 0 ? 'text-green-600' : 'text-red-600');
+        badge.textContent = `هامش الربح: ${profitMargin.toFixed(1)}%`;
+    }
+
     $('rep-invoices-count').textContent = filteredInvoices.length;
     $('rep-avg-invoice').textContent = formatMoney(salesInvoices.length ? salesTotal / salesInvoices.length : 0) + ' ' + settings.currency;
 
@@ -1656,9 +1788,10 @@ function generateReport() {
             if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
             const d = itemMap.get(it.productId);
             const p = products.find(x => x.id === it.productId);
+            const cost = p?.costPrice || it.price * 0.7;
             d.qty += it.qty;
             d.revenue += it.total;
-            d.profit += (it.price - (p?.costPrice || 0)) * it.qty;
+            d.profit += (it.price - cost) * it.qty;
         });
     });
 
@@ -1670,36 +1803,30 @@ function generateReport() {
                 <td class="p-3">${escapeHtml(t.name)}</td>
                 <td class="p-3 font-bold">${t.qty}</td>
                 <td class="p-3 text-green-600">${formatMoney(t.revenue)}</td>
-                <td class="p-3 text-blue-600 font-semibold">${formatMoney(t.profit)}</td>
+                <td class="p-3 ${t.profit >= 0 ? 'text-blue-600' : 'text-red-600'} font-semibold">${formatMoney(t.profit)}</td>
             </tr>
         `).join('');
 }
 
 // ============================================================
-// 🔑 تصدير كل الدوال إلى window (إلزامي مع type="module")
+// 🔑 تصدير كل الدوال إلى window
 // ============================================================
 Object.assign(window, {
-    // المصادقة والتنقل
     switchAuthMode, logout, switchTab,
-    // Modals
     openModal, closeModal, confirmDialog,
-    // الأصناف
     openProductModal, deleteProduct, renderProducts,
-    // العملاء والموردين
     openPartyModal, deleteParty, renderParties,
-    // الفواتير
     openInvoiceModal, addInvoiceItem, removeInvoiceItem,
     onInvoiceItemProductChange, recalcInvoice, renderInvoices,
     viewInvoice, printInvoice, updateInvoicePartySelect,
-    // المصروفات
     openExpenseModal, deleteExpense, renderExpenses,
-    // التقارير
-    generateReport, renderDashboard,
-    // أدوات
+    openPaymentModal, openStatement, openPaymentModalFromStatement,
+    printStatement,
+    generateReport, renderReportsLive, renderDashboard,
     showToast, escapeHtml, formatMoney, formatDate, dateKey
 });
 
-console.log('✅ النظام جاهز - كل الدوال مُصدَّرة إلى window');
+console.log('✅ النظام جاهز - المرحلة 2A (كشف حساب + دفعات)');
 </script>
 </body>
 </html>
