@@ -1210,6 +1210,7 @@ function addInvoiceItem() {
     const isSale = type === 'sale';
     const priceField = isSale ? 'sellPrice' : 'costPrice';
     const tbody = $('invoice-items-body');
+
     const tr = document.createElement('tr');
     tr.id = rowId;
     tr.className = 'border-b';
@@ -1217,13 +1218,23 @@ function addInvoiceItem() {
         <td class="p-2">
             <select class="inv-item-product w-full border rounded p-1 text-sm" onchange="onInvoiceItemProductChange('${rowId}')">
                 <option value="">اختر الصنف</option>
-                ${products.map(p => `<option value="${p.id}" data-price="${p[priceField] || 0}">${escapeHtml(p.name)} (متاح: ${p.qty})</option>`).join('')}
+                ${products.map(p => {
+                    // ✅ الحل: اعرض الكمية الحقيقية فقط في المبيعات
+                    const availableQty = isSale ? p.qty : '∞';
+                    return `<option value="${p.id}" data-price="${p[priceField] || 0}" data-stock="${p.qty}">${escapeHtml(p.name)} (متاح: ${availableQty})</option>`;
+                }).join('')}
             </select>
         </td>
-        <td class="p-2"><input type="number" class="inv-item-qty w-full border rounded p-1 text-sm" value="1" min="1" oninput="recalcInvoice()"></td>
-        <td class="p-2"><input type="number" class="inv-item-price w-full border rounded p-1 text-sm" value="0" min="0" step="0.01" oninput="recalcInvoice()"></td>
+        <td class="p-2">
+            <input type="number" class="inv-item-qty w-full border rounded p-1 text-sm" value="1" min="1" oninput="recalcInvoice()">
+        </td>
+        <td class="p-2">
+            <input type="number" class="inv-item-price w-full border rounded p-1 text-sm" value="0" min="0" step="0.01" oninput="recalcInvoice()">
+        </td>
         <td class="p-2 inv-item-total font-semibold">0.00</td>
-        <td class="p-2"><button type="button" onclick="removeInvoiceItem('${rowId}')" class="text-red-500 hover:text-red-700 text-lg">&times;</button></td>
+        <td class="p-2">
+            <button type="button" onclick="removeInvoiceItem('${rowId}')" class="text-red-500 hover:text-red-700 text-lg">&times;</button>
+        </td>
     `;
     tbody.appendChild(tr);
 }
@@ -1258,6 +1269,7 @@ function recalcInvoice() {
     const total = Math.max(0, subtotal - discount);
     const paid = parseFloat($('inv-paid').value) || 0;
     const remaining = Math.max(0, total - paid);
+
     $('inv-subtotal').textContent = formatMoney(subtotal);
     $('inv-discount-display').textContent = formatMoney(discount);
     $('inv-total').textContent = formatMoney(total);
