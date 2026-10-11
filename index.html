@@ -1150,15 +1150,40 @@ function renderParties(type) {
 
 // ============ الفواتير ============
 function openInvoiceModal(type) {
+    // ✅ الحل 1: امسح الصفوف القديمة قبل أي شيء
+    $('invoice-items-body').innerHTML = '';
+
+    // إعادة ضبط النموذج
     $('invoice-form').reset();
+
+    // تحديد نوع الفاتورة
     $('inv-type').value = type;
     const isSale = type === 'sale';
+
+    // العناوين
     $('invoice-modal-title').textContent = isSale ? '🧾 فاتورة بيع' : '🚚 فاتورة شراء';
     $('inv-party-label').textContent = isSale ? 'العميل *' : 'المورد *';
+
+    // رقم الفاتورة والتاريخ
     $('inv-number-display').value = generateInvoiceNumber(type);
     $('inv-date').value = new Date().toISOString().slice(0, 10);
+
+    // ✅ الحل 2: إعادة ضبط الإجماليات
+    $('inv-discount').value = 0;
+    $('inv-paid').value = 0;
+    $('inv-subtotal').textContent = '0.00';
+    $('inv-discount-display').textContent = '0.00';
+    $('inv-total').textContent = '0.00';
+    $('inv-paid-display').textContent = '0.00';
+    $('inv-remaining').textContent = '0.00';
+
+    // تحديث قائمة العملاء/الموردين
     updateInvoicePartySelect();
+
+    // إضافة صف واحد فقط
     addInvoiceItem();
+
+    // فتح النافذة
     openModal('invoice-modal');
 }
 
