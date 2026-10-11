@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام كناش ومخزن احترافي</title>
+
+<!-- كتم تحذير Tailwind CDN -->
+<script>
+    const _warn = console.warn;
+    console.warn = (...args) => {
+        if (args[0]?.includes?.('cdn.tailwindcss.com')) return;
+        _warn.apply(console, args);
+    };
+</script>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -13,13 +23,9 @@
     .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-    input:focus, select:focus, textarea:focus { outline: none; ring: 2px; }
-    @media print {
-        .no-print { display: none !important; }
-        .print-area { display: block !important; }
-    }
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    @media print { .no-print { display: none !important; } }
 </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -57,7 +63,6 @@
 <!-- ============ التطبيق الرئيسي ============ -->
 <div id="app-screen" class="hidden min-h-screen">
 
-    <!-- الهيدر -->
     <header class="bg-white border-b shadow-sm sticky top-0 z-30 no-print">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3">
             <div class="flex items-center gap-3">
@@ -74,7 +79,6 @@
         </div>
     </header>
 
-    <!-- شريط التنقل الرئيسي -->
     <nav class="bg-white border-b sticky top-[61px] z-20 no-print overflow-x-auto scrollbar-thin">
         <div class="container mx-auto px-4 flex gap-1 min-w-max">
             <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn px-4 py-3 font-semibold text-sm border-b-2 transition">🏠 الرئيسية</button>
@@ -89,7 +93,7 @@
 
     <main class="container mx-auto p-4 max-w-7xl">
 
-        <!-- ============ الرئيسية (Dashboard) ============ -->
+        <!-- الرئيسية -->
         <section id="tab-dashboard" class="tab-content space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-md">
@@ -136,17 +140,17 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div class="bg-white p-5 rounded-xl shadow-sm">
-                    <h3 class="font-bold mb-3 flex items-center gap-2">⚠️ أصناف تحتاج تعبئة</h3>
+                    <h3 class="font-bold mb-3">⚠️ أصناف تحتاج تعبئة</h3>
                     <div id="dash-low-stock-list" class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin"></div>
                 </div>
                 <div class="bg-white p-5 rounded-xl shadow-sm">
-                    <h3 class="font-bold mb-3 flex items-center gap-2">🧾 آخر الفواتير</h3>
+                    <h3 class="font-bold mb-3">🧾 آخر الفواتير</h3>
                     <div id="dash-recent-invoices" class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin"></div>
                 </div>
             </div>
         </section>
 
-        <!-- ============ الأصناف ============ -->
+        <!-- الأصناف -->
         <section id="tab-products" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -183,7 +187,7 @@
             </div>
         </section>
 
-        <!-- ============ الفواتير ============ -->
+        <!-- الفواتير -->
         <section id="tab-invoices" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -199,8 +203,6 @@
                         <option value="all">الكل</option>
                         <option value="sale">بيع</option>
                         <option value="purchase">شراء</option>
-                        <option value="sale_return">مرتجع بيع</option>
-                        <option value="purchase_return">مرتجع شراء</option>
                     </select>
                     <input type="date" id="invoice-date-filter" class="border p-2 rounded-lg text-sm" onchange="renderInvoices()">
                 </div>
@@ -227,7 +229,7 @@
             </div>
         </section>
 
-        <!-- ============ العملاء ============ -->
+        <!-- العملاء -->
         <section id="tab-customers" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -255,7 +257,7 @@
             </div>
         </section>
 
-        <!-- ============ الموردين ============ -->
+        <!-- الموردين -->
         <section id="tab-suppliers" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -283,7 +285,7 @@
             </div>
         </section>
 
-        <!-- ============ المصروفات ============ -->
+        <!-- المصروفات -->
         <section id="tab-expenses" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -311,7 +313,7 @@
             </div>
         </section>
 
-        <!-- ============ التقارير ============ -->
+        <!-- التقارير -->
         <section id="tab-reports" class="tab-content hidden space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm">
                 <h2 class="text-lg font-bold mb-4">📊 التقارير</h2>
@@ -367,7 +369,7 @@
             </div>
         </section>
 
-        <!-- ============ الإعدادات ============ -->
+        <!-- الإعدادات -->
         <section id="tab-settings" class="tab-content hidden space-y-4">
             <div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl">
                 <h2 class="text-lg font-bold mb-4">⚙️ إعدادات المتجر</h2>
@@ -402,7 +404,7 @@
     </main>
 </div>
 
-<!-- ============ Modal: منتج ============ -->
+<!-- Modals -->
 <div id="product-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin">
         <div class="p-5 border-b sticky top-0 bg-white">
@@ -450,7 +452,6 @@
     </div>
 </div>
 
-<!-- ============ Modal: عميل/مورد ============ -->
 <div id="party-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="p-5 border-b">
@@ -489,7 +490,6 @@
     </div>
 </div>
 
-<!-- ============ Modal: مصروف ============ -->
 <div id="expense-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="p-5 border-b">
@@ -525,7 +525,6 @@
     </div>
 </div>
 
-<!-- ============ Modal: فاتورة ============ -->
 <div id="invoice-modal" class="hidden fixed inset-0 modal-overlay items-start justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
         <div class="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
@@ -554,7 +553,6 @@
                 </div>
             </div>
 
-            <!-- جدول البنود -->
             <div class="border rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-right">
@@ -573,7 +571,6 @@
                 <button type="button" onclick="addInvoiceItem()" class="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm border-t">+ إضافة صنف</button>
             </div>
 
-            <!-- الإجماليات -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-3">
                     <div>
@@ -614,7 +611,6 @@
     </div>
 </div>
 
-<!-- ============ Modal: عرض/طباعة فاتورة ============ -->
 <div id="invoice-view-modal" class="hidden fixed inset-0 modal-overlay items-start justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
         <div class="p-4 border-b flex justify-between items-center no-print">
@@ -624,14 +620,12 @@
                 <button onclick="closeModal('invoice-view-modal')" class="text-2xl text-gray-400">&times;</button>
             </div>
         </div>
-        <div id="invoice-print-area" class="p-6 print-area"></div>
+        <div id="invoice-print-area" class="p-6"></div>
     </div>
 </div>
 
-<!-- ============ حاوية التنبيهات ============ -->
 <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] space-y-2 no-print"></div>
 
-<!-- ============ Modal تأكيد ============ -->
 <div id="confirm-modal" class="hidden fixed inset-0 modal-overlay items-center justify-center z-[60] p-4">
     <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
         <h3 class="text-lg font-bold mb-2" id="confirm-title">تأكيد</h3>
@@ -643,17 +637,16 @@
     </div>
 </div>
 
-<!-- ============ Firebase SDK ============ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
     getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc,
-    query, orderBy, serverTimestamp, getDoc, setDoc, where, limit, getDocs, writeBatch, increment
+    query, orderBy, serverTimestamp, getDoc, setDoc, where, limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ============ إعدادات ============
+// ============ إعدادات Firebase ============
 const firebaseConfig = {
     apiKey: "AIzaSyDz6zwskT2aamqjFJ-0G-xvXhWBXDnGIMo",
     authDomain: "konter-app-11714.firebaseapp.com",
@@ -680,30 +673,22 @@ let customers = [];
 let suppliers = [];
 let invoices = [];
 let expenses = [];
+let invoiceItems = [];
 
-// Listeners
 const unsubs = {};
+const $ = (id) => document.getElementById(id);
 
 // ============ أدوات مساعدة ============
-const $  = (id) => document.getElementById(id);
-
 function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
 }
 
-function formatMoney(n) {
-    return Number(n || 0).toFixed(2);
-}
+function formatMoney(n) { return Number(n || 0).toFixed(2); }
 
 function showToast(msg, type = 'success') {
-    const colors = {
-        success: 'bg-green-600',
-        error:   'bg-red-600',
-        info:    'bg-blue-600',
-        warn:    'bg-yellow-600'
-    };
+    const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600', warn: 'bg-yellow-600' };
     const el = document.createElement('div');
     el.className = `toast ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg font-semibold max-w-md`;
     el.textContent = msg;
@@ -718,7 +703,6 @@ function confirmDialog(message, title = 'تأكيد') {
         $('confirm-message').textContent = message;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-
         const cleanup = (result) => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
@@ -731,18 +715,8 @@ function confirmDialog(message, title = 'تأكيد') {
     });
 }
 
-function openModal(id) {
-    const m = $(id);
-    m.classList.remove('hidden');
-    m.classList.add('flex');
-}
-function closeModal(id) {
-    const m = $(id);
-    m.classList.add('hidden');
-    m.classList.remove('flex');
-}
-window.openModal = openModal;
-window.closeModal = closeModal;
+function openModal(id) { const m = $(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+function closeModal(id) { const m = $(id); m.classList.add('hidden'); m.classList.remove('flex'); }
 
 function formatDate(ts) {
     if (!ts) return '-';
@@ -774,13 +748,12 @@ function switchAuthMode(mode) {
     }
     $('auth-error').classList.add('hidden');
 }
-window.switchAuthMode = switchAuthMode;
 
 $('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email    = $('auth-email').value.trim();
+    const email = $('auth-email').value.trim();
     const password = $('auth-password').value;
-    const errEl    = $('auth-error');
+    const errEl = $('auth-error');
     const submitBtn = $('auth-submit');
     errEl.classList.add('hidden');
     submitBtn.disabled = true;
@@ -812,7 +785,6 @@ $('auth-form').addEventListener('submit', async (e) => {
 async function logout() {
     if (await confirmDialog('هل تريد تسجيل الخروج؟', 'خروج')) await signOut(auth);
 }
-window.logout = logout;
 
 // ============ مراقبة الحالة ============
 onAuthStateChanged(auth, async (user) => {
@@ -839,7 +811,6 @@ async function loadSettings() {
         if (snap.exists()) {
             settings = { ...settings, ...snap.data() };
         } else {
-            // إنشاء الإعدادات الافتراضية
             await setDoc(doc(db, 'settings', currentUser.uid), {
                 ...settings,
                 ownerId: currentUser.uid,
@@ -848,7 +819,8 @@ async function loadSettings() {
         }
         applySettings();
     } catch (err) {
-        console.error('loadSettings', err);
+        console.error('loadSettings:', err);
+        showToast('فشل تحميل الإعدادات: ' + err.message, 'error');
     }
 }
 
@@ -883,6 +855,8 @@ $('settings-form').addEventListener('submit', async (e) => {
 });
 
 // ============ Real-time Listeners ============
+// ملاحظة: أزلنا orderBy من الفواتير لتجنب الحاجة لفهرس مركّب.
+// الترتيب يتم في JavaScript. يمكن إعادة orderBy بعد إنشاء الفهرس.
 function startListeners() {
     // المنتجات
     unsubs.products = onSnapshot(
@@ -891,8 +865,8 @@ function startListeners() {
             products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderProducts();
             renderDashboard();
-            updateInvoicePartySelect();
-        }
+        },
+        err => console.error('products listener:', err)
     );
 
     // العملاء
@@ -902,7 +876,8 @@ function startListeners() {
             customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderParties('customer');
             renderDashboard();
-        }
+        },
+        err => console.error('customers listener:', err)
     );
 
     // الموردين
@@ -911,28 +886,42 @@ function startListeners() {
         snap => {
             suppliers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderParties('supplier');
-        }
+        },
+        err => console.error('suppliers listener:', err)
     );
 
-    // الفواتير
+    // الفواتير — بدون orderBy (لتفادي الحاجة لفهرس مركّب)
     unsubs.invoices = onSnapshot(
-        query(collection(db, 'invoices'), where('ownerId', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(500)),
+        query(collection(db, 'invoices'), where('ownerId', '==', currentUser.uid)),
         snap => {
-            invoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            invoices = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => {
+                    const ta = a.createdAt?.toDate?.()?.getTime() || 0;
+                    const tb = b.createdAt?.toDate?.()?.getTime() || 0;
+                    return tb - ta;
+                });
             renderInvoices();
             renderDashboard();
         },
-        err => console.error('invoices listener', err)
+        err => console.error('invoices listener:', err)
     );
 
-    // المصروفات
+    // المصروفات — بدون orderBy
     unsubs.expenses = onSnapshot(
-        query(collection(db, 'expenses'), where('ownerId', '==', currentUser.uid), orderBy('createdAt', 'desc'), limit(500)),
+        query(collection(db, 'expenses'), where('ownerId', '==', currentUser.uid)),
         snap => {
-            expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            expenses = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => {
+                    const ta = a.createdAt?.toDate?.()?.getTime() || 0;
+                    const tb = b.createdAt?.toDate?.()?.getTime() || 0;
+                    return tb - ta;
+                });
             renderExpenses();
             renderDashboard();
-        }
+        },
+        err => console.error('expenses listener:', err)
     );
 }
 
@@ -959,7 +948,6 @@ function switchTab(tab) {
         }
     });
 }
-window.switchTab = switchTab;
 
 // ============ المنتجات ============
 function openProductModal(id) {
@@ -984,7 +972,6 @@ function openProductModal(id) {
     }
     openModal('product-modal');
 }
-window.openProductModal = openProductModal;
 
 $('product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1000,7 +987,6 @@ $('product-form').addEventListener('submit', async (e) => {
         ownerId: currentUser.uid,
         updatedAt: serverTimestamp()
     };
-
     if (!data.name) { showToast('اسم الصنف مطلوب', 'error'); return; }
     if (data.qty < 0 || data.sellPrice < 0) { showToast('قيم غير صحيحة', 'error'); return; }
 
@@ -1030,7 +1016,6 @@ async function deleteProduct(id) {
         showToast('فشل الحذف: ' + err.message, 'error');
     }
 }
-window.deleteProduct = deleteProduct;
 
 function renderProducts() {
     const tbody = $('products-table-body');
@@ -1094,7 +1079,6 @@ function openPartyModal(type, id) {
     }
     openModal('party-modal');
 }
-window.openPartyModal = openPartyModal;
 
 $('party-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1111,7 +1095,6 @@ $('party-form').addEventListener('submit', async (e) => {
         ownerId: currentUser.uid,
         updatedAt: serverTimestamp()
     };
-
     if (!data.name) { showToast('الاسم مطلوب', 'error'); return; }
 
     try {
@@ -1141,7 +1124,6 @@ async function deleteParty(type, id) {
         showToast('فشل الحذف: ' + err.message, 'error');
     }
 }
-window.deleteParty = deleteParty;
 
 function renderParties(type) {
     const tbody = $(type === 'customer' ? 'customers-table-body' : 'suppliers-table-body');
@@ -1174,8 +1156,6 @@ function renderParties(type) {
 }
 
 // ============ الفواتير ============
-let invoiceItems = [];
-
 function openInvoiceModal(type) {
     invoiceItems = [];
     $('invoice-form').reset();
@@ -1184,22 +1164,13 @@ function openInvoiceModal(type) {
     $('invoice-modal-title').textContent = isSale ? '🧾 فاتورة بيع' : '🚚 فاتورة شراء';
     $('inv-party-label').textContent = isSale ? 'العميل *' : 'المورد *';
 
-    // رقم الفاتورة التلقائي
-    const nextNum = generateInvoiceNumber(type);
-    $('inv-number-display').value = nextNum;
-
-    // التاريخ الحالي
+    $('inv-number-display').value = generateInvoiceNumber(type);
     $('inv-date').value = new Date().toISOString().slice(0, 10);
 
-    // تحميل الجهة
     updateInvoicePartySelect();
-
-    // إضافة بند افتراضي
     addInvoiceItem();
-
     openModal('invoice-modal');
 }
-window.openInvoiceModal = openInvoiceModal;
 
 function generateInvoiceNumber(type) {
     const prefix = type === 'sale' ? 'S' : type === 'purchase' ? 'P' : 'R';
@@ -1246,20 +1217,19 @@ function addInvoiceItem() {
 
 function onInvoiceItemProductChange(rowId) {
     const tr = $(rowId);
+    if (!tr) return;
     const select = tr.querySelector('.inv-item-product');
     const opt = select.options[select.selectedIndex];
     const price = parseFloat(opt.dataset.price) || 0;
     tr.querySelector('.inv-item-price').value = price.toFixed(2);
     recalcInvoice();
 }
-window.onInvoiceItemProductChange = onInvoiceItemProductChange;
 
 function removeInvoiceItem(rowId) {
     const tr = $(rowId);
     if (tr) tr.remove();
     recalcInvoice();
 }
-window.removeInvoiceItem = removeInvoiceItem;
 
 function recalcInvoice() {
     let subtotal = 0;
@@ -1267,7 +1237,8 @@ function recalcInvoice() {
         const qty = parseFloat(tr.querySelector('.inv-item-qty')?.value) || 0;
         const price = parseFloat(tr.querySelector('.inv-item-price')?.value) || 0;
         const total = qty * price;
-        tr.querySelector('.inv-item-total').textContent = formatMoney(total);
+        const totalEl = tr.querySelector('.inv-item-total');
+        if (totalEl) totalEl.textContent = formatMoney(total);
         subtotal += total;
     });
 
@@ -1282,7 +1253,6 @@ function recalcInvoice() {
     $('inv-paid-display').textContent = formatMoney(paid);
     $('inv-remaining').textContent = formatMoney(remaining);
 }
-window.recalcInvoice = recalcInvoice;
 
 $('invoice-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1294,7 +1264,6 @@ $('invoice-form').addEventListener('submit', async (e) => {
     const party = partyArr.find(p => p.id === partyId);
     if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
 
-    // جمع البنود
     const items = [];
     document.querySelectorAll('#invoice-items-body tr').forEach(tr => {
         const productId = tr.querySelector('.inv-item-product')?.value;
@@ -1305,8 +1274,7 @@ $('invoice-form').addEventListener('submit', async (e) => {
             items.push({
                 productId,
                 name: product?.name || 'غير معروف',
-                qty,
-                price,
+                qty, price,
                 total: qty * price
             });
         }
@@ -1320,7 +1288,6 @@ $('invoice-form').addEventListener('submit', async (e) => {
     const paid = parseFloat($('inv-paid').value) || 0;
     const remaining = Math.max(0, total - paid);
 
-    // التحقق من الكمية للمبيعات
     if (type === 'sale') {
         for (const item of items) {
             const p = products.find(x => x.id === item.productId);
@@ -1355,10 +1322,9 @@ $('invoice-form').addEventListener('submit', async (e) => {
     submitBtn.textContent = 'جارٍ الحفظ...';
 
     try {
-        // 1) حفظ الفاتورة
         const invRef = await addDoc(collection(db, 'invoices'), invoice);
 
-        // 2) تحديث كميات المنتجات
+        // تحديث كميات المنتجات
         for (const item of items) {
             const p = products.find(x => x.id === item.productId);
             if (!p) continue;
@@ -1371,7 +1337,7 @@ $('invoice-form').addEventListener('submit', async (e) => {
             });
         }
 
-        // 3) تحديث رصيد العميل/المورد
+        // تحديث رصيد العميل/المورد
         if (type === 'sale' && remaining > 0) {
             await updateDoc(doc(db, 'customers', partyId), {
                 balance: (party.balance || 0) + remaining
@@ -1384,8 +1350,6 @@ $('invoice-form').addEventListener('submit', async (e) => {
 
         showToast('تم حفظ الفاتورة ✅');
         closeModal('invoice-modal');
-
-        // عرض الفاتورة للطباعة
         setTimeout(() => viewInvoice(invRef.id), 400);
     } catch (err) {
         console.error(err);
@@ -1415,29 +1379,19 @@ function renderInvoices() {
         return;
     }
 
-    const typeLabels = {
-        sale: 'بيع',
-        purchase: 'شراء',
-        sale_return: 'مرتجع بيع',
-        purchase_return: 'مرتجع شراء'
-    };
-    const typeColors = {
-        sale: 'bg-blue-100 text-blue-700',
-        purchase: 'bg-orange-100 text-orange-700',
-        sale_return: 'bg-red-100 text-red-700',
-        purchase_return: 'bg-purple-100 text-purple-700'
-    };
+    const typeLabels = { sale: 'بيع', purchase: 'شراء' };
+    const typeColors = { sale: 'bg-blue-100 text-blue-700', purchase: 'bg-orange-100 text-orange-700' };
 
     tbody.innerHTML = list.map(inv => `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3 text-sm font-mono">${escapeHtml(inv.number || '-')}</td>
-            <td class="p-3"><span class="text-xs px-2 py-1 rounded ${typeColors[inv.type]}">${typeLabels[inv.type] || inv.type}</span></td>
+            <td class="p-3"><span class="text-xs px-2 py-1 rounded ${typeColors[inv.type] || 'bg-gray-100'}">${typeLabels[inv.type] || inv.type}</span></td>
             <td class="p-3 font-semibold">${escapeHtml(inv.partyName || '-')}</td>
             <td class="p-3 font-bold">${formatMoney(inv.total)}</td>
             <td class="p-3 text-green-600">${formatMoney(inv.paid)}</td>
             <td class="p-3 ${inv.remaining > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}">${formatMoney(inv.remaining)}</td>
             <td class="p-3 text-sm text-gray-500">${inv.date || formatDate(inv.createdAt)}</td>
-            <td class="p-3 flex gap-1">
+            <td class="p-3">
                 <button onclick="viewInvoice('${inv.id}')" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">عرض</button>
             </td>
         </tr>
@@ -1447,7 +1401,7 @@ function renderInvoices() {
 function viewInvoice(id) {
     const inv = invoices.find(i => i.id === id);
     if (!inv) return;
-    const typeLabels = { sale: 'فاتورة بيع', purchase: 'فاتورة شراء', sale_return: 'مرتجع بيع', purchase_return: 'مرتجع شراء' };
+    const typeLabels = { sale: 'فاتورة بيع', purchase: 'فاتورة شراء' };
 
     const html = `
         <div class="space-y-4">
@@ -1508,7 +1462,6 @@ function viewInvoice(id) {
     $('invoice-print-area').innerHTML = html;
     openModal('invoice-view-modal');
 }
-window.viewInvoice = viewInvoice;
 
 function printInvoice() {
     const content = $('invoice-print-area').innerHTML;
@@ -1530,7 +1483,6 @@ function printInvoice() {
     win.document.close();
     setTimeout(() => { win.print(); }, 400);
 }
-window.printInvoice = printInvoice;
 
 // ============ المصروفات ============
 function openExpenseModal(id) {
@@ -1547,7 +1499,6 @@ function openExpenseModal(id) {
     }
     openModal('expense-modal');
 }
-window.openExpenseModal = openExpenseModal;
 
 $('expense-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1585,7 +1536,6 @@ async function deleteExpense(id) {
         showToast('فشل: ' + err.message, 'error');
     }
 }
-window.deleteExpense = deleteExpense;
 
 function renderExpenses() {
     const tbody = $('expenses-table-body');
@@ -1618,24 +1568,19 @@ function renderExpenses() {
 function renderDashboard() {
     const today = new Date().toISOString().slice(0, 10);
 
-    // مبيعات اليوم
     const todaySales = invoices
         .filter(i => i.type === 'sale' && i.date === today)
         .reduce((s, i) => s + (i.total || 0), 0);
     $('dash-today-sales').textContent = formatMoney(todaySales);
 
-    // عدد الأصناف
     $('dash-products-count').textContent = products.length;
 
-    // أصناف منخفضة
     const lowStock = products.filter(p => p.qty <= (p.minQty ?? settings.lowStockThreshold));
     $('dash-low-stock').textContent = lowStock.length;
 
-    // ديون العملاء
     const debt = customers.reduce((s, c) => s + Math.max(0, c.balance || 0), 0);
     $('dash-customers-debt').textContent = formatMoney(debt);
 
-    // قائمة الأصناف المنخفضة
     const lowList = $('dash-low-stock-list');
     if (lowStock.length === 0) {
         lowList.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">لا توجد أصناف منخفضة ✅</p>';
@@ -1648,7 +1593,6 @@ function renderDashboard() {
         `).join('');
     }
 
-    // آخر الفواتير
     const recent = $('dash-recent-invoices');
     const recentList = invoices.slice(0, 8);
     if (recentList.length === 0) {
@@ -1688,27 +1632,26 @@ function generateReport() {
     const purchasesTotal = filteredInvoices.filter(i => i.type === 'purchase').reduce((s, i) => s + i.total, 0);
     const expensesTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
-    // حساب الربح من فرق التكلفة
-    let cogs = 0;  // تكلفة البضاعة المباعة
+    let cogs = 0;
     filteredInvoices.filter(i => i.type === 'sale').forEach(inv => {
         (inv.items || []).forEach(it => {
             const p = products.find(x => x.id === it.productId);
-            const cost = p?.costPrice || 0;
-            cogs += cost * it.qty;
+            cogs += (p?.costPrice || 0) * it.qty;
         });
     });
     const profit = salesTotal - cogs - expensesTotal;
+
+    const salesInvoices = filteredInvoices.filter(i => i.type === 'sale');
 
     $('rep-sales').textContent = formatMoney(salesTotal) + ' ' + settings.currency;
     $('rep-purchases').textContent = formatMoney(purchasesTotal) + ' ' + settings.currency;
     $('rep-expenses').textContent = formatMoney(expensesTotal) + ' ' + settings.currency;
     $('rep-profit').textContent = formatMoney(profit) + ' ' + settings.currency;
     $('rep-invoices-count').textContent = filteredInvoices.length;
-    $('rep-avg-invoice').textContent = formatMoney(filteredInvoices.length ? salesTotal / filteredInvoices.filter(i => i.type === 'sale').length || 0 : 0) + ' ' + settings.currency;
+    $('rep-avg-invoice').textContent = formatMoney(salesInvoices.length ? salesTotal / salesInvoices.length : 0) + ' ' + settings.currency;
 
-    // الأكثر مبيعاً
     const itemMap = new Map();
-    filteredInvoices.filter(i => i.type === 'sale').forEach(inv => {
+    salesInvoices.forEach(inv => {
         (inv.items || []).forEach(it => {
             if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
             const d = itemMap.get(it.productId);
@@ -1731,11 +1674,32 @@ function generateReport() {
             </tr>
         `).join('');
 }
-window.generateReport = generateReport;
 
-// ============ التاريخ ============
-$('current-date') && ($('current-date').textContent = new Date().toLocaleDateString('ar-EG'));
+// ============================================================
+// 🔑 تصدير كل الدوال إلى window (إلزامي مع type="module")
+// ============================================================
+Object.assign(window, {
+    // المصادقة والتنقل
+    switchAuthMode, logout, switchTab,
+    // Modals
+    openModal, closeModal, confirmDialog,
+    // الأصناف
+    openProductModal, deleteProduct, renderProducts,
+    // العملاء والموردين
+    openPartyModal, deleteParty, renderParties,
+    // الفواتير
+    openInvoiceModal, addInvoiceItem, removeInvoiceItem,
+    onInvoiceItemProductChange, recalcInvoice, renderInvoices,
+    viewInvoice, printInvoice, updateInvoicePartySelect,
+    // المصروفات
+    openExpenseModal, deleteExpense, renderExpenses,
+    // التقارير
+    generateReport, renderDashboard,
+    // أدوات
+    showToast, escapeHtml, formatMoney, formatDate, dateKey
+});
 
+console.log('✅ النظام جاهز - كل الدوال مُصدَّرة إلى window');
 </script>
 </body>
 </html>
