@@ -2331,6 +2331,7 @@ async function importBackup() {
             `📊 المحتوى:\n` +
             Object.entries(stats).filter(([_, c]) => c > 0).map(([k, c]) => `   • ${k}: ${c}`).join('\n') +
             `\n\n⚠️ سيتم إضافة ${totalDocs} مستند إلى حسابك الحالي.\n` +
+            `✅ سيتم الاحتفاظ بالـ IDs الأصلية (لن ينكسر الربط)\n` +
             `هل أنت متأكد؟`;
 
         if (!confirm(msg)) return;
@@ -2354,6 +2355,9 @@ async function importBackup() {
             for (const item of items) {
                 try {
                     const data = { ...item };
+
+                    // ✅ احتفظ بالـ ID الأصلي
+                    const originalId = data.id;
                     delete data.id;
 
                     // تحويل Timestamps
@@ -2366,7 +2370,13 @@ async function importBackup() {
                     // تحديث ownerId
                     data.ownerId = currentUser.uid;
 
-                    await addDoc(collection(db, collName), data);
+                    // ✅ استخدم setDoc مع ID الأصلي (بدل addDoc)
+                    if (originalId) {
+                        await setDoc(doc(db, collName, originalId), data);
+                    } else {
+                        // احتياطي: لو لم يوجد ID، استخدم addDoc
+                        await addDoc(collection(db, collName), data);
+                    }
                     success++;
                 } catch (err) {
                     console.warn(`فشل استيراد من ${collName}:`, err);
