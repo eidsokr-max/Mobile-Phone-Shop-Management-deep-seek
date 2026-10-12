@@ -2108,11 +2108,19 @@ function generateReport() {
 
     const expensesTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
-    let cogs = 0;
+        let cogs = 0;
+    // تكلفة المبيعات
     filteredInvoices.filter(i => i.type === 'sale').forEach(inv => {
         (inv.items || []).forEach(it => {
             const p = products.find(x => x.id === it.productId);
             cogs += (p?.costPrice || 0) * it.qty;
+        });
+    });
+    // خصم تكلفة المرتجعات (البضاعة عادت للمخزن)
+    filteredInvoices.filter(i => i.type === 'sale_return').forEach(inv => {
+        (inv.items || []).forEach(it => {
+            const p = products.find(x => x.id === it.productId);
+            cogs -= (p?.costPrice || 0) * it.qty;
         });
     });
 
