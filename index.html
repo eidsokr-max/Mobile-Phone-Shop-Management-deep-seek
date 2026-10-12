@@ -1918,20 +1918,24 @@ function openStatement(partyType, partyId) {
         if (inv.partyId !== partyId) return;
         let debit = 0, credit = 0, desc = '';
         if (partyType === 'customer') {
-            if (inv.type === 'sale') { debit = inv.total; desc = `فاتورة بيع #${inv.number}`; }
-            else if (inv.type === 'sale_return') { credit = inv.total; desc = `↩️ مرتجع بيع #${inv.number}`; }
-        } else {
-            if (inv.type === 'purchase') { credit = inv.total; desc = `فاتورة شراء #${inv.number}`; }
-            else if (inv.type === 'purchase_return') { debit = inv.total; desc = `↩️ مرتجع شراء #${inv.number}`; }
-        }
-        if (debit || credit) {
+    if (inv.type === 'sale') {
+        debit = inv.total;
+        desc = `فاتورة بيع #${inv.number}`;
+    } else if (inv.type === 'sale_return') {
+        credit = inv.total;
+        desc = `↩️ مرتجع بيع #${inv.number}`;
+        // إذا كان هناك دفع في المرتجع
+        if (inv.paid > 0) {
             movements.push({
                 date: inv.date || formatDate(inv.createdAt),
-                description: desc, debit, credit,
-                sortKey: inv.createdAt?.toDate?.()?.getTime() || 0
+                description: `💵 دفع نقدي للمرتجع #${inv.number}`,
+                debit: inv.paid,
+                credit: 0,
+                sortKey: (inv.createdAt?.toDate?.()?.getTime() || 0) + 1
             });
         }
-    });
+    }
+}
 
     payments.forEach(pay => {
         if (pay.partyId !== partyId) return;
