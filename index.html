@@ -2151,7 +2151,10 @@ function generateReport() {
     $('rep-invoices-count').textContent = filteredInvoices.length;
     $('rep-avg-invoice').textContent = formatMoney(salesInvoices.length ? salesTotal / salesInvoices.length : 0) + ' ' + settings.currency;
 
+        // 1) المبيعات
     const itemMap = new Map();
+    const salesReturnInvoices = filteredInvoices.filter(i => i.type === 'sale_return');
+
     salesInvoices.forEach(inv => {
         (inv.items || []).forEach(it => {
             if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
@@ -2164,7 +2167,24 @@ function generateReport() {
         });
     });
 
-    const top = Array.from(itemMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 15);
+    // 2) اخصم المرتجعات
+    salesReturnInvoices.forEach(inv => {
+        (inv.items || []).forEach(it => {
+            if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
+            const d = itemMap.get(it.productId);
+            const p = products.find(x => x.id === it.productId);
+            const cost = p?.costPrice || it.price * 0.7;
+            d.qty -= it.qty;
+            d.revenue -= it.total;
+            d.profit -= (it.price - cost) * it.qty;
+        });
+    });
+
+    // 3) احذف الأصناف بكمية ≤ 0
+    const top = Array.from(itemMap.values())
+        .filter(t => t.qty > 0)
+        .sort((a, b) => b.qty - a.qty)
+        .slice(0, 15);
     $('top-products-body').innerHTML = top.length === 0
         ? `<tr><td colspan="4" class="p-6 text-center text-gray-400">لا توجد بيانات</td></tr>`
         : top.map(t => `
