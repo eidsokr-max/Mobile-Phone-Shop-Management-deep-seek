@@ -925,10 +925,14 @@ $('auth-form').addEventListener('submit', async (e) => {
     submitBtn.textContent = 'جارٍ...';
     try {
         if (authMode === 'login') {
-            await signInWithEmailAndPassword(auth, email, password);
-        } else {
-            await createUserWithEmailAndPassword(auth, email, password);
-        }
+    await signInWithEmailAndPassword(auth, email, password);
+} else {
+    // ❌ التسجيل مغلق
+    showToast('التسجيل مغلق. تواصل مع المدير.', 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'إنشاء حساب';
+    return;
+}
     } catch (err) {
         const msgs = {
             'auth/invalid-credential': 'بيانات الدخول غير صحيحة',
