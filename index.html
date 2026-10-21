@@ -1248,13 +1248,36 @@ function renderParties(type) {
         return;
     }
     tbody.innerHTML = list.map(p => {
-        const bal = p.balance || 0;
-        const balClass = type === 'customer'
-            ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
-            : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
-        const balLabel = type === 'customer'
-            ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
-            : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
+        // ✅ حساب الرصيد الفعلي من الحركات (بدلاً من الرقم المخزن)
+let actualBalance = 0;
+
+invoices.forEach(inv => {
+    if (inv.partyId !== p.id) return;
+    if (type === 'customer') {
+        if (inv.type === 'sale') actualBalance += inv.total;
+        else if (inv.type === 'sale_return') actualBalance -= inv.total;
+    } else {
+        if (inv.type === 'purchase') actualBalance += inv.total;
+        else if (inv.type === 'purchase_return') actualBalance -= inv.total;
+    }
+});
+
+payments.forEach(pay => {
+    if (pay.partyId !== p.id) return;
+    if (type === 'customer') {
+        if (pay.direction === 'in') actualBalance -= pay.amount;
+    } else {
+        if (pay.direction === 'out') actualBalance -= pay.amount;
+    }
+});
+
+const bal = actualBalance;
+const balClass = type === 'customer'
+    ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
+    : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
+const balLabel = type === 'customer'
+    ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
+    : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
         return `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3"><div class="font-semibold">${escapeHtml(p.name)}</div></td>
