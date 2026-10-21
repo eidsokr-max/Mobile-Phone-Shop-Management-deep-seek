@@ -1248,36 +1248,36 @@ function renderParties(type) {
         return;
     }
     tbody.innerHTML = list.map(p => {
-        // ✅ حساب الرصيد الفعلي من الحركات (بدلاً من الرقم المخزن)
-let actualBalance = 0;
+        // ✅ حساب الرصيد الفعلي من الحركات شاملاً الرصيد الافتتاحي
+        let actualBalance = p.openingBalance || 0;
 
-invoices.forEach(inv => {
-    if (inv.partyId !== p.id) return;
-    if (type === 'customer') {
-        if (inv.type === 'sale') actualBalance += inv.total;
-        else if (inv.type === 'sale_return') actualBalance -= inv.total;
-    } else {
-        if (inv.type === 'purchase') actualBalance += inv.total;
-        else if (inv.type === 'purchase_return') actualBalance -= inv.total;
-    }
-});
+        invoices.forEach(inv => {
+            if (inv.partyId !== p.id) return;
+            if (type === 'customer') {
+                if (inv.type === 'sale') actualBalance += inv.total;
+                else if (inv.type === 'sale_return') actualBalance -= (inv.total - (inv.paid || 0));
+            } else {
+                if (inv.type === 'purchase') actualBalance += inv.total;
+                else if (inv.type === 'purchase_return') actualBalance -= (inv.total - (inv.paid || 0));
+            }
+        });
 
-payments.forEach(pay => {
-    if (pay.partyId !== p.id) return;
-    if (type === 'customer') {
-        if (pay.direction === 'in') actualBalance -= pay.amount;
-    } else {
-        if (pay.direction === 'out') actualBalance -= pay.amount;
-    }
-});
+        payments.forEach(pay => {
+            if (pay.partyId !== p.id) return;
+            if (type === 'customer') {
+                if (pay.direction === 'in') actualBalance -= pay.amount;
+            } else {
+                if (pay.direction === 'out') actualBalance -= pay.amount;
+            }
+        });
 
-const bal = actualBalance;
-const balClass = type === 'customer'
-    ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
-    : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
-const balLabel = type === 'customer'
-    ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
-    : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
+        const bal = actualBalance;
+        const balClass = type === 'customer'
+            ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
+            : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
+        const balLabel = type === 'customer'
+            ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
+            : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
         return `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3"><div class="font-semibold">${escapeHtml(p.name)}</div></td>
@@ -1298,13 +1298,10 @@ const balLabel = type === 'customer'
 
 // ============ Invoices ============
 function openInvoiceModal(type) {
-    // ✅ الحل 1: امسح الصفوف القديمة
     $('invoice-items-body').innerHTML = '';
 
-    // إعادة ضبط النموذج
     $('invoice-form').reset();
 
-    // تحديد النوع
     $('inv-type').value = type;
     const isSale = type === 'sale';
     const isSaleReturn = type === 'sale_return';
@@ -1324,7 +1321,6 @@ function openInvoiceModal(type) {
     $('inv-number-display').value = generateInvoiceNumber(type);
     $('inv-date').value = new Date().toISOString().slice(0, 10);
 
-    // ✅ الحل 2: إعادة ضبط الإجماليات
     $('inv-discount').value = 0;
     $('inv-paid').value = 0;
     $('inv-subtotal').textContent = '0.00';
@@ -1333,7 +1329,6 @@ function openInvoiceModal(type) {
     $('inv-paid-display').textContent = '0.00';
     $('inv-remaining').textContent = '0.00';
 
-    // قسم الفاتورة الأصلية
     const returnSection = $('inv-return-section');
     if (returnSection) {
         if (isReturn) {
@@ -1378,13 +1373,14 @@ function addInvoiceItem() {
     const tr = document.createElement('tr');
     tr.id = rowId;
     tr.className = 'border-b';
+    // ✅ إضافة خاصية cost لحفظ التكلفة التاريخية
     tr.innerHTML = `
         <td class="p-2">
             <select class="inv-item-product w-full border rounded p-1 text-sm" onchange="onInvoiceItemProductChange('${rowId}')">
                 <option value="">اختر الصنف</option>
                 ${products.map(p => {
                     const availableQty = isSale ? p.qty : '∞';
-                    return `<option value="${p.id}" data-price="${p[priceField] || 0}" data-stock="${p.qty}">${escapeHtml(p.name)} (متاح: ${availableQty})</option>`;
+                    return `<option value="${p.id}" data-price="${p[priceField] || 0}" data-cost="${p.costPrice || 0}" data-stock="${p.qty}">${escapeHtml(p.name)} (متاح: ${availableQty})</option>`;
                 }).join('')}
             </select>
         </td>
@@ -1402,7 +1398,9 @@ function onInvoiceItemProductChange(rowId) {
     const select = tr.querySelector('.inv-item-product');
     const opt = select.options[select.selectedIndex];
     const price = parseFloat(opt.dataset.price) || 0;
+    const cost = parseFloat(opt.dataset.cost) || 0; // ✅ استخراج التكلفة
     tr.querySelector('.inv-item-price').value = price.toFixed(2);
+    tr.dataset.cost = cost; // ✅ حفظ التكلفة في الصف
     recalcInvoice();
 }
 
@@ -1497,6 +1495,7 @@ function addReturnItemRow(item, maxQty) {
     tr.className = 'border-b';
     tr.dataset.productId = item.productId;
     tr.dataset.maxQty = maxQty;
+    tr.dataset.cost = item.costPrice || 0; // ✅ حفظ التكلفة التاريخية للمرتجع
     tr.innerHTML = `
         <td class="p-2">
             <div class="text-sm font-semibold">${escapeHtml(item.name)}</div>
@@ -1556,9 +1555,10 @@ $('invoice-form').addEventListener('submit', async (e) => {
         const productId = tr.dataset.productId || tr.querySelector('.inv-item-product')?.value;
         const qty = parseFloat(tr.querySelector('.inv-item-qty')?.value) || 0;
         const price = parseFloat(tr.querySelector('.inv-item-price')?.value) || 0;
+        const cost = parseFloat(tr.dataset.cost) || 0; // ✅ جلب التكلفة التاريخية
         if (productId && qty > 0) {
             const product = products.find(p => p.id === productId);
-            items.push({ productId, name: product?.name || 'غير معروف', qty, price, total: qty * price });
+            items.push({ productId, name: product?.name || 'غير معروف', qty, price, costPrice: cost, total: qty * price }); // ✅ حفظ costPrice
         }
     });
 
@@ -1644,15 +1644,15 @@ $('invoice-form').addEventListener('submit', async (e) => {
             await updateDoc(doc(db, 'products', item.productId), { qty: newQty, updatedAt: serverTimestamp() });
         }
 
-        // تحديث رصيد العميل/المورد
+        // ✅ تحديث رصيد العميل/المورد بشكل صحيح (خصم المدفوع نقداً من المرتجع)
         if (isSale && remaining > 0) {
             await updateDoc(doc(db, 'customers', partyId), { balance: (party.balance || 0) + remaining });
-        } else if (isSaleReturn && total > 0) {
-            await updateDoc(doc(db, 'customers', partyId), { balance: (party.balance || 0) - total });
+        } else if (isSaleReturn) {
+            await updateDoc(doc(db, 'customers', partyId), { balance: (party.balance || 0) - (total - paid) });
         } else if (isPurchase && remaining > 0) {
             await updateDoc(doc(db, 'suppliers', partyId), { balance: (party.balance || 0) + remaining });
-        } else if (isPurchaseReturn && total > 0) {
-            await updateDoc(doc(db, 'suppliers', partyId), { balance: (party.balance || 0) - total });
+        } else if (isPurchaseReturn) {
+            await updateDoc(doc(db, 'suppliers', partyId), { balance: (party.balance || 0) - (total - paid) });
         }
 
         const msgs = {
@@ -1937,11 +1937,12 @@ function openStatement(partyType, partyId) {
             description: 'رصيد افتتاحي',
             debit: partyType === 'customer' ? openingBalance : 0,
             credit: partyType === 'supplier' ? openingBalance : 0,
-            sortKey: 0
+            sortKey: 0,
+            createdAt: 0
         });
     }
 
-        invoices.forEach(inv => {
+    invoices.forEach(inv => {
         if (inv.partyId !== partyId) return;
         let debit = 0, credit = 0, desc = '';
 
@@ -1950,25 +1951,15 @@ function openStatement(partyType, partyId) {
                 debit = inv.total;
                 desc = `فاتورة بيع #${inv.number}`;
             } else if (inv.type === 'sale_return') {
-                credit = inv.total;
+                credit = inv.total - (inv.paid || 0); // ✅ صافي المرتجع بعد خصم المدفوع نقداً
                 desc = `↩️ مرتجع بيع #${inv.number}`;
-
-                if (inv.paid > 0) {
-                    movements.push({
-                        date: inv.date || formatDate(inv.createdAt),
-                        description: `↩️ استرداد نقدي للمرتجع #${inv.number}`,
-                        debit: inv.paid,
-                        credit: 0,
-                        sortKey: (inv.createdAt?.toDate?.()?.getTime() || 0) + 1
-                    });
-                }
             }
         } else {
             if (inv.type === 'purchase') {
                 credit = inv.total;
                 desc = `فاتورة شراء #${inv.number}`;
             } else if (inv.type === 'purchase_return') {
-                debit = inv.total;
+                debit = inv.total - (inv.paid || 0); // ✅ صافي المرتجع بعد خصم المدفوع نقداً
                 desc = `↩️ مرتجع شراء #${inv.number}`;
             }
         }
@@ -1977,7 +1968,8 @@ function openStatement(partyType, partyId) {
             movements.push({
                 date: inv.date || formatDate(inv.createdAt),
                 description: desc, debit, credit,
-                sortKey: inv.createdAt?.toDate?.()?.getTime() || 0
+                sortKey: new Date(inv.date || inv.createdAt?.toDate?.() || Date.now()).getTime(), // ✅ الترتيب حسب تاريخ الفاتورة
+                createdAt: inv.createdAt?.toDate?.()?.getTime() || 0
             });
         }
     });
@@ -1989,17 +1981,19 @@ function openStatement(partyType, partyId) {
             description: `دفعة (${pay.method === 'cash' ? 'نقدي' : pay.method === 'bank' ? 'بنكي' : 'أخرى'})${pay.notes ? ' - ' + pay.notes : ''}`,
             debit: pay.direction === 'out' ? pay.amount : 0,
             credit: pay.direction === 'in' ? pay.amount : 0,
-            sortKey: pay.createdAt?.toDate?.()?.getTime() || 0
+            sortKey: new Date(pay.date || pay.createdAt?.toDate?.() || Date.now()).getTime(),
+            createdAt: pay.createdAt?.toDate?.()?.getTime() || 0
         });
     });
 
-    movements.sort((a, b) => a.sortKey - b.sortKey);
+    // ✅ الترتيب حسب التاريخ ثم وقت الإنشاء كعامل ثانوي
+    movements.sort((a, b) => a.sortKey - b.sortKey || a.createdAt - b.createdAt);
     let running = 0;
     movements.forEach(m => { running += (m.debit || 0) - (m.credit || 0); m.running = running; });
 
     const totalDebit = movements.reduce((s, m) => s + (m.debit || 0), 0);
     const totalCredit = movements.reduce((s, m) => s + (m.credit || 0), 0);
-    const finalBalance = running; // ✅ الاعتماد على مجموع الحركات بدلاً من الرقم المحفوظ
+    const finalBalance = running;
 
     const typeLabel = partyType === 'customer' ? 'عميل' : 'مورد';
     const balanceLabel = partyType === 'customer'
@@ -2162,19 +2156,17 @@ function generateReport() {
 
     const expensesTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
-        let cogs = 0;
-    // تكلفة المبيعات
+    let cogs = 0;
+    // ✅ تكلفة المبيعات التاريخية (باستخدام التكلفة المحفوظة في الفاتورة)
     filteredInvoices.filter(i => i.type === 'sale').forEach(inv => {
         (inv.items || []).forEach(it => {
-            const p = products.find(x => x.id === it.productId);
-            cogs += (p?.costPrice || 0) * it.qty;
+            cogs += (it.costPrice || 0) * it.qty;
         });
     });
     // خصم تكلفة المرتجعات (البضاعة عادت للمخزن)
     filteredInvoices.filter(i => i.type === 'sale_return').forEach(inv => {
         (inv.items || []).forEach(it => {
-            const p = products.find(x => x.id === it.productId);
-            cogs -= (p?.costPrice || 0) * it.qty;
+            cogs -= (it.costPrice || 0) * it.qty;
         });
     });
 
@@ -2213,7 +2205,7 @@ function generateReport() {
     $('rep-invoices-count').textContent = filteredInvoices.length;
     $('rep-avg-invoice').textContent = formatMoney(salesInvoices.length ? salesTotal / salesInvoices.length : 0) + ' ' + settings.currency;
 
-        // 1) المبيعات
+    // 1) المبيعات
     const itemMap = new Map();
     const salesReturnInvoices = filteredInvoices.filter(i => i.type === 'sale_return');
 
@@ -2221,8 +2213,7 @@ function generateReport() {
         (inv.items || []).forEach(it => {
             if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
             const d = itemMap.get(it.productId);
-            const p = products.find(x => x.id === it.productId);
-            const cost = p?.costPrice || it.price * 0.7;
+            const cost = it.costPrice || it.price * 0.7; // ✅ استخدام التكلفة التاريخية
             d.qty += it.qty;
             d.revenue += it.total;
             d.profit += (it.price - cost) * it.qty;
@@ -2234,8 +2225,7 @@ function generateReport() {
         (inv.items || []).forEach(it => {
             if (!itemMap.has(it.productId)) itemMap.set(it.productId, { name: it.name, qty: 0, revenue: 0, profit: 0 });
             const d = itemMap.get(it.productId);
-            const p = products.find(x => x.id === it.productId);
-            const cost = p?.costPrice || it.price * 0.7;
+            const cost = it.costPrice || it.price * 0.7; // ✅ استخدام التكلفة التاريخية
             d.qty -= it.qty;
             d.revenue -= it.total;
             d.profit -= (it.price - cost) * it.qty;
@@ -2449,8 +2439,7 @@ async function importBackup() {
                         }
                     }
 
-                    // تحديث ownerId
-                    data.ownerId = currentUser.uid;
+                    // تحديث ownerId                    data.ownerId = currentUser.uid;
 
                     // ✅ استخدم setDoc مع ID الأصلي (بدل addDoc)
                     if (originalId) {
@@ -2581,8 +2570,7 @@ Object.assign(window, {
     showToast, escapeHtml, formatMoney, formatDate, dateKey
 });
 
-console.log('✅ النظام جاهز - المرحلة 2A + 2B (دفعات + كشف حساب + مرتجعات)');
+console.log('✅ النظام جاهز - المرحلة 2A + 2B + تعديلات محاسبية (دفعات + كشف حساب + مرتجعات + تكلفة تاريخية)');
 </script>
 </body>
 </html>
-        
