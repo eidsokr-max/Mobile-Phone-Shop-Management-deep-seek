@@ -1243,25 +1243,39 @@ function renderParties(type) {
     const search = ($(type === 'customer' ? 'customer-search' : 'supplier-search')?.value || '').toLowerCase();
     const arr = type === 'customer' ? customers : suppliers;
     const list = search ? arr.filter(p => (p.name || '').toLowerCase().includes(search)) : arr;
+    
     if (list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">لا يوجد ${type === 'customer' ? 'عملاء' : 'موردين'}</td></tr>`;
         return;
     }
+
     tbody.innerHTML = list.map(p => {
-        // ✅ حساب الرصيد الفعلي من الحركات شاملاً الرصيد الافتتاحي
+        // نبدأ بالرصيد الافتتاحي (إن وجد)
         let actualBalance = p.openingBalance || 0;
 
         invoices.forEach(inv => {
             if (inv.partyId !== p.id) return;
+            
             if (type === 'customer') {
-                if (inv.type === 'sale') actualBalance += inv.total;
-                else if (inv.type === 'sale_return') actualBalance -= (inv.total - (inv.paid || 0));
+                if (inv.type === 'sale') {
+                    // ✅ للعميل: نضيف المتبقي من الفاتورة فقط (الإجمالي - المدفوع)
+                    actualBalance += (inv.total - (inv.paid || 0));
+                } else if (inv.type === 'sale_return') {
+                    // ✅ للعميل: نخصم صافي المرتجع (الإجمالي - المدفوع نقداً للعميل)
+                    actualBalance -= (inv.total - (inv.paid || 0));
+                }
             } else {
-                if (inv.type === 'purchase') actualBalance += inv.total;
-                else if (inv.type === 'purchase_return') actualBalance -= (inv.total - (inv.paid || 0));
+                if (inv.type === 'purchase') {
+                    // ✅ للمورد: نضيف المتبقي من فاتورة الشراء
+                    actualBalance += (inv.total - (inv.paid || 0));
+                } else if (inv.type === 'purchase_return') {
+                    // ✅ للمورد: نخصم صافي مرتجع الشراء
+                    actualBalance -= (inv.total - (inv.paid || 0));
+                }
             }
         });
 
+        // نخصم الدفعات المستقلة (التي تم تسجيلها من زر "تسجيل دفعة")
         payments.forEach(pay => {
             if (pay.partyId !== p.id) return;
             if (type === 'customer') {
@@ -1275,15 +1289,20 @@ function renderParties(type) {
         const balClass = type === 'customer'
             ? (bal > 0 ? 'text-red-600' : bal < 0 ? 'text-green-600' : 'text-gray-500')
             : (bal > 0 ? 'text-orange-600' : bal < 0 ? 'text-green-600' : 'text-gray-500');
+        
         const balLabel = type === 'customer'
             ? (bal > 0 ? 'مدين' : bal < 0 ? 'دائن' : 'متوازن')
             : (bal > 0 ? 'أنت مدين' : bal < 0 ? 'دائن' : 'متوازن');
+
         return `
         <tr class="border-b hover:bg-gray-50">
             <td class="p-3"><div class="font-semibold">${escapeHtml(p.name)}</div></td>
             <td class="p-3 text-sm">${escapeHtml(p.phone || '-')}</td>
             <td class="p-3 text-sm text-gray-600">${escapeHtml(p.address || '-')}</td>
-            <td class="p-3 font-bold ${balClass}">${formatMoney(Math.abs(bal))} ${settings.currency}<div class="text-xs font-normal">${balLabel}</div></td>
+            <td class="p-3 font-bold ${balClass}">
+                ${formatMoney(Math.abs(bal))} ${settings.currency}
+                <div class="text-xs font-normal">${balLabel}</div>
+            </td>
             <td class="p-3">
                 <button onclick="openStatement('${type}', '${p.id}')" class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">📄 كشف</button>
                 <button onclick="openPaymentModal('${type}', '${p.id}')" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded">💰 دفعة</button>
@@ -1930,6 +1949,8 @@ function openStatement(partyType, partyId) {
     if (!party) { showToast('الجهة غير موجودة', 'error'); return; }
 
     const movements = [];
+    
+    // 1. الرصيد الافتتاحي
     const openingBalance = party.openingBalance || 0;
     if (openingBalance !== 0) {
         movements.push({
@@ -1942,6 +1963,7 @@ function openStatement(partyType, partyId) {
         });
     }
 
+    // 2. الفواتير (مع فصل المدفوع كحركة مستقلة)
     invoices.forEach(inv => {
         if (inv.partyId !== partyId) return;
         let debit = 0, credit = 0, desc = '';
@@ -1951,7 +1973,7 @@ function openStatement(partyType, partyId) {
                 debit = inv.total;
                 desc = `فاتورة بيع #${inv.number}`;
             } else if (inv.type === 'sale_return') {
-                credit = inv.total - (inv.paid || 0); // ✅ صافي المرتجع بعد خصم المدفوع نقداً
+                credit = inv.total;
                 desc = `↩️ مرتجع بيع #${inv.number}`;
             }
         } else {
@@ -1959,7 +1981,7 @@ function openStatement(partyType, partyId) {
                 credit = inv.total;
                 desc = `فاتورة شراء #${inv.number}`;
             } else if (inv.type === 'purchase_return') {
-                debit = inv.total - (inv.paid || 0); // ✅ صافي المرتجع بعد خصم المدفوع نقداً
+                debit = inv.total;
                 desc = `↩️ مرتجع شراء #${inv.number}`;
             }
         }
@@ -1968,12 +1990,25 @@ function openStatement(partyType, partyId) {
             movements.push({
                 date: inv.date || formatDate(inv.createdAt),
                 description: desc, debit, credit,
-                sortKey: new Date(inv.date || inv.createdAt?.toDate?.() || Date.now()).getTime(), // ✅ الترتيب حسب تاريخ الفاتورة
+                sortKey: new Date(inv.date || inv.createdAt?.toDate?.() || Date.now()).getTime(),
                 createdAt: inv.createdAt?.toDate?.()?.getTime() || 0
+            });
+        }
+
+        // ✅ إضافة حركة مستقلة للمبلغ المدفوع داخل الفاتورة (إن وجد)
+        if (inv.paid > 0) {
+            movements.push({
+                date: inv.date || formatDate(inv.createdAt),
+                description: `💵 دفعة مسددة مع الفاتورة #${inv.number}`,
+                debit: (partyType === 'supplier' && inv.type === 'purchase') || (partyType === 'customer' && inv.type === 'sale_return') ? inv.paid : 0,
+                credit: (partyType === 'customer' && inv.type === 'sale') || (partyType === 'supplier' && inv.type === 'purchase_return') ? inv.paid : 0,
+                sortKey: new Date(inv.date || inv.createdAt?.toDate?.() || Date.now()).getTime() + 1, // يظهر بعد الفاتورة مباشرة
+                createdAt: (inv.createdAt?.toDate?.()?.getTime() || 0) + 1
             });
         }
     });
 
+    // 3. الدفعات المستقلة (من زر تسجيل دفعة)
     payments.forEach(pay => {
         if (pay.partyId !== partyId) return;
         movements.push({
@@ -1986,7 +2021,7 @@ function openStatement(partyType, partyId) {
         });
     });
 
-    // ✅ الترتيب حسب التاريخ ثم وقت الإنشاء كعامل ثانوي
+    // 4. الترتيب وحساب الرصيد التراكمي
     movements.sort((a, b) => a.sortKey - b.sortKey || a.createdAt - b.createdAt);
     let running = 0;
     movements.forEach(m => { running += (m.debit || 0) - (m.credit || 0); m.running = running; });
@@ -2000,6 +2035,7 @@ function openStatement(partyType, partyId) {
         ? (finalBalance > 0 ? 'مدين لك' : finalBalance < 0 ? 'دائن له' : 'متوازن')
         : (finalBalance > 0 ? 'أنت مدين له' : finalBalance < 0 ? 'دائن لك' : 'متوازن');
 
+    // 5. بناء واجهة الكشف (HTML)
     const html = `
         <div class="space-y-4">
             <div class="flex justify-between items-start border-b pb-3">
