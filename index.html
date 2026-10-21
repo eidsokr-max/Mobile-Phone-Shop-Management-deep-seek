@@ -1976,7 +1976,7 @@ function openStatement(partyType, partyId) {
 
     const totalDebit = movements.reduce((s, m) => s + (m.debit || 0), 0);
     const totalCredit = movements.reduce((s, m) => s + (m.credit || 0), 0);
-    const finalBalance = party.balance || 0;
+    const finalBalance = running; // ✅ الاعتماد على مجموع الحركات بدلاً من الرقم المحفوظ
 
     const typeLabel = partyType === 'customer' ? 'عميل' : 'مورد';
     const balanceLabel = partyType === 'customer'
